@@ -1,36 +1,137 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# لوميير — متجر إلكتروني عصري
 
-## Getting Started
+واجهة متجر ولوحة تحكم إدارية جاهزة للإنتاج، مبنية بـ **Next.js 16 (App Router)**،
+**TypeScript**، **Tailwind CSS v4**، **Prisma ORM**، **MySQL** (XAMPP محلياً) و **Zod**.
 
-First, run the development server:
+- واجهة عربية بالكامل (RTL) بخطوط Cairo/Tajawal، مع وضع فاتح/داكن وسلة محفوظة
+- العملة بالدينار العراقي (`د.ع`) والأرقام إنجليزية مع فواصل الآلاف (`125,000 د.ع`)
+- صور المنتجات والفئات: عبر **رابط** أو **رفع من الجهاز** (تُحفظ في `public/uploads`)
+- مصادقة آمنة للعملاء والإدارة (كلمات مرور مشفّرة، كوكي جلسة موقّع)
+- لوحة تحكم كاملة: الكتالوج، المخزون، الطلبات، وتحليلات المبيعات
+- الطلبات تُنقص المخزون ذرّياً داخل معاملة Prisma واحدة
+
+---
+
+## المتطلبات
+
+- **Node.js 20+** (تم التطوير على Node 24)
+- **XAMPP** مع MySQL يعمل على `localhost:3306`
+
+## البدء السريع
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1) تثبيت الحزم
+npm install
+
+# 2) شغّل MySQL من لوحة تحكم XAMPP
+
+# 3) أنشئ المخطط وحمّل البيانات التجريبية (ينشئ قاعدة `store_db`)
+npm run db:setup      # = prisma db push && prisma db seed
+
+# 4) شغّل التطبيق
+npm run dev           # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> ملاحظة: `db:seed` يستبدل الكتالوج (الفئات والمنتجات والطلبات) بالكامل
+> بالبيانات العربية التجريبية، ويبقي على حسابات المستخدمين.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### متغيرات البيئة
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+الإعدادات في `.env` (مضبوطة مسبقاً لإعدادات XAMPP الافتراضية):
 
-## Learn More
+```env
+DATABASE_URL="mysql://root:@localhost:3306/store_db"
+AUTH_SECRET="dev-secret-change-me-please-32chars-min"
+```
 
-To learn more about Next.js, take a look at the following resources:
+غيّر `AUTH_SECRET` قبل النشر.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## الحسابات والدخول
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| الدور | الهاتف        | كلمة المرور | صفحة الدخول    |
+| ----- | ------------- | ----------- | -------------- |
+| مدير  | `07700000000` | `admin1234` | `/admin/login` |
+| زبون  | `07711111111` | `user1234`  | `/login`       |
 
-## Deploy on Vercel
+الدخول **منفصل تماماً** بين الزبائن والإدارة:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **الزبائن**: `/register` لإنشاء حساب و`/login` للدخول. حساب المدير يُرفض هنا.
+- **المدير**: `/admin/login` فقط — لا يوجد رابط له من المتجر، ولا إنشاء حساب ذاتي.
+  حساب المدير يُنشأ عبر البذور (`npm run db:seed`)؛ لتغيير رقمه أو كلمة مروره
+  عدّل `prisma/seed.mts` قبل تشغيل البذور أو استخدم `npm run db:studio`.
+- الجلسة كوكي واحد موقّع يحمل الدور؛ صفحات `/admin/*` تتحقق من دور `ADMIN`،
+  وصفحة الدفع وإنشاء الطلبات تتحقق من دور `USER`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## الأوامر
+
+| الأمر                | الوصف                                   |
+| -------------------- | --------------------------------------- |
+| `npm run dev`        | تشغيل خادم التطوير                      |
+| `npm run build`      | بناء الإنتاج                            |
+| `npm start`          | تشغيل نسخة الإنتاج                      |
+| `npm run lint`       | ESLint                                  |
+| `npm run db:setup`   | `prisma db push` + البذور               |
+| `npm run db:push`    | مزامنة المخطط مع قاعدة البيانات         |
+| `npm run db:migrate` | إنشاء/تطبيق ترحيل                       |
+| `npm run db:seed`    | تحميل الفئات والمنتجات والمستخدمين      |
+| `npm run db:studio`  | فتح Prisma Studio                       |
+
+## المزايا
+
+**المتجر**
+
+- صفحة رئيسية بعرض الفئات والمنتجات مجمّعة حسب الفئة (5 لكل فئة مع رابط **عرض الكل**)
+- بطاقات منتجات بشارات الخصم وتنبيه المخزون المنخفض وزر الإضافة للسلة
+- سلة منزلقة + صفحة سلة كاملة (محفوظة في localStorage)
+- إتمام الطلب يعتمد على بيانات العميل من ملفه (الاسم، الهاتف، المحافظة) — الدفع عند الاستلام
+- التوصيل: مجاني فوق 100,000 د.ع وإلا 5,000 د.ع (`lib/constants.ts`)
+
+**الإدارة (`/admin`)**
+
+- لوحة تحكم بالإيرادات والطلبات والمخزون والأكثر مبيعاً
+- إدارة المنتجات: الصورة (رابط أو رفع من الجهاز)، السعر، المخزون، وتفعيل الخصم
+- إدارة الفئات (بنفس خيارَي الصورة)
+- إدارة الطلبات مع بيانات العميل وتغيير الحالة
+- تقارير: الإيراد حسب الحالة، الأكثر مبيعاً، وتنبيهات المخزون
+
+**رفع الصور**
+
+- الصيغ المدعومة: JPG، PNG، WebP، GIF، AVIF — بحد أقصى 4 ميغابايت
+- تُحفظ في `public/uploads/` وتُقدَّم على `/uploads/<اسم>`؛ المجلد مستثنى من Git
+- حد حجم طلب Server Actions مضبوط على 5MB في `next.config.ts`
+
+**مسارات API**
+
+- `GET /api/health` – فحص الاتصال بقاعدة البيانات
+- `GET /api/products` – قائمة المنتجات (`?categoryId=` للتصفية)
+- `GET /api/categories` – قائمة الفئات
+
+## التقنيات والبنية
+
+- **App Router** بفصل واضح بين مكوّنات الخادم والعميل
+- **Server Actions** للمصادقة وتعديلات الكتالوج وإنشاء الطلبات
+- نماذج **Prisma**: `User`، `Category`، `Product`، `Order`، `OrderItem`
+- مخططات **Zod** تتحقق من كل نموذج ومدخلات Server Actions (رسائل عربية)
+- القراءات آمنة الفشل: إن كانت MySQL غير متاحة تعرض الصفحات إرشادات الإعداد بدل الانهيار
+
+### بنية المشروع
+
+```
+app/
+  (storefront)/        # المتجر العام: الرئيسية، المنتجات، الفئة، السلة، الدفع
+  (auth)/              # دخول وتسجيل الزبائن
+  admin/
+    login/             # دخول المدير (منفصل)
+    (panel)/           # لوحة التحكم، المنتجات، الفئات، الطلبات، التقارير
+  actions/             # Server Actions (المصادقة، الطلبات، الإدارة)
+  api/                 # Route Handlers
+components/            # الشريط العلوي، السلة، بطاقة المنتج، واجهة الإدارة، مزوّدات …
+lib/                   # prisma, auth, zod-schemas, data, format, upload, constants
+prisma/                # schema.prisma + seed.mts
+public/uploads/        # الصور المرفوعة من لوحة الإدارة (خارج Git)
+```
+
+## ملاحظات
+
+- Prisma مثبّت على الإصدار المستقر **6.x** (سير عمل `schema.prisma` الكلاسيكي).
+- الأسعار مخزّنة كـ `Float` للتبسيط؛ استخدم `Decimal` أو وحدات صحيحة للأعمال الفعلية.

@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // These fire on idiomatic synchronization effects we use intentionally:
+      // localStorage hydration, reading the DOM theme class on mount, resetting
+      // menus on route change, and responding to Server Action results.
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
