@@ -10,26 +10,21 @@ import type { AdminState } from "@/app/actions/admin";
 import { CURRENCY } from "@/lib/constants";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { agentCode } from "@/lib/agent";
+import type { ExpenseRecord } from "@/lib/data";
 
 type AgentOption = { id: string; name: string; agentNumber: number | null };
-
-export type ExpenseRow = {
-  id: string;
-  amount: number;
-  recipientName: string;
-  agent: AgentOption | null;
-  note: string | null;
-  createdAt: string;
-};
 
 const OTHER = "__other__";
 
 export function ExpenseAdmin({
   agents,
   expenses,
+  periodLabel,
 }: {
   agents: AgentOption[];
-  expenses: ExpenseRow[];
+  /** Expenses of the selected period only. */
+  expenses: ExpenseRecord[];
+  periodLabel: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -126,7 +121,7 @@ export function ExpenseAdmin({
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="font-serif text-xl">سجل الصرفيات</h2>
-            <p className="text-sm text-muted">{formatNumber(expenses.length)} عملية</p>
+            <p className="text-sm text-muted">{periodLabel} · {formatNumber(expenses.length)} عملية</p>
           </div>
           <div className="text-end">
             <p className="text-xs text-muted">الإجمالي</p>
@@ -135,7 +130,7 @@ export function ExpenseAdmin({
         </div>
         {expenses.length === 0 ? (
           <p className="px-5 py-12 text-center text-sm text-muted">
-            لا توجد صرفيات مسجّلة بعد.
+            لا توجد صرفيات في هذه الفترة.
           </p>
         ) : (
           <div className="overflow-x-auto">

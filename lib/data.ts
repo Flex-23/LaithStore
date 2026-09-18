@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type OrderStatus } from "@prisma/client";
 import { prisma } from "./prisma";
 import { PRODUCTS_PER_CATEGORY } from "./constants";
 import {
@@ -6,6 +6,11 @@ import {
   HOME_CONTENT_ID,
   type HomeContentData,
 } from "./home-content";
+import {
+  businessMonthKey,
+  businessMonthKeysSince,
+  currentBusinessMonth,
+} from "./business-day";
 
 export type CategoryWithProducts = Prisma.CategoryGetPayload<{
   include: { products: true };
@@ -22,12 +27,15 @@ export const agentSelect = {
   agentNumber: true,
 } satisfies Prisma.UserSelect;
 
+/** Everything the admin order views need. */
+export const orderInclude = {
+  user: true,
+  items: { include: { product: true } },
+  agent: { select: agentSelect },
+} satisfies Prisma.OrderInclude;
+
 export type OrderWithDetails = Prisma.OrderGetPayload<{
-  include: {
-    user: true;
-    items: { include: { product: true } };
-    agent: { select: typeof agentSelect };
-  };
+  include: typeof orderInclude;
 }>;
 
 /** Editable home-page copy; falls back to the defaults if unset/offline. */
@@ -144,11 +152,7 @@ export async function getAllOrders(): Promise<OrderWithDetails[]> {
   try {
     return await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        user: true,
-        items: { include: { product: true } },
-        agent: { select: agentSelect },
-      },
+      include: orderInclude,
     });
   } catch {
     return [];
@@ -170,11 +174,7 @@ export async function getOrdersBetween(
     return await prisma.order.findMany({
       where: { createdAt: { gte: start, lt: end } },
       orderBy: { createdAt: "desc" },
-      include: {
-        user: true,
-        items: { include: { product: true } },
-        agent: { select: agentSelect },
-      },
+      include: orderInclude,
     });
   } catch {
     return [];
@@ -251,42 +251,29 @@ export async function getCatalogCounts(): Promise<CatalogCounts> {
 
 // --- Agents (المندوبون) -----------------------------------------------------
 
-export type AgentRecord = Prisma.UserGetPayload<{
-  select: {
-    id: true;
-    name: true;
-    phone: true;
-    governorate: true;
-    agentNumber: true;
-    commissionPercent: true;
-    canManageProducts: true;
-    canManageOrders: true;
-    canViewDashboard: true;
-    canManageHome: true;
-    isActive: true;
-    createdAt: true;
-  };
-}>;
+const agentRecordSelect = {
+  id: true,
+  name: true,
+  phone: true,
+  governorate: true,
+  agentNumber: true,
+  commissionPerOrder: true,
+  canManageProducts: true,
+  canManageOrders: true,
+  canViewDashboard: true,
+  canManageHome: true,
+  isActive: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+
+export type AgentRecord = Prisma.UserGetPayload<{ select: typeof agentRecordSelect }>;
 
 export async function getAgents(): Promise<AgentRecord[]> {
   try {
     return await prisma.user.findMany({
       where: { role: "AGENT" },
       orderBy: { agentNumber: "asc" },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        governorate: true,
-        agentNumber: true,
-        commissionPercent: true,
-        canManageProducts: true,
-        canManageOrders: true,
-        canViewDashboard: true,
-        canManageHome: true,
-        isActive: true,
-        createdAt: true,
-      },
+      select: agentRecordSelect,
     });
   } catch {
     return [];
@@ -306,43 +293,100 @@ export async function getActiveAgentsLite() {
   }
 }
 
+export type DateRange = { start: Date; end: Date };
+
+/** Prisma `createdAt` filter for an optional range. */
+function within(range?: DateRange) {
+  return range ? { gte: range.start, lt: range.end } : undefined;
+}
+
 export type AgentReport = {
   agent: AgentRecord;
   totalOrders: number;
   pending: number;
+  /** Orders that left the store: shipped + delivered. */
+  dispatched: number;
   shipped: number;
   delivered: number;
   cancelled: number;
-  /** Sum of delivered order totals. */
-  deliveredSales: number;
-  /** Commission earned on delivered orders (snapshotted % per order). */
+  /** Sum of dispatched order totals. */
+  dispatchedSales: number;
+  /** Fee earned: the per-order amount snapshotted on each dispatched order. */
   commission: number;
   /** Money paid out to this agent (expenses). */
   paidOut: number;
+  /** commission − paidOut */
+  netDue: number;
+};
+
+type OrderForReport = {
+  status: OrderStatus;
+  totalAmount: number;
+  agentCommission: number | null;
 };
 
 /**
- * Per-agent performance for orders created in [start, end) (omit for all-time).
- * Commission counts delivered orders only, using the % stored on each order.
+ * Single source of truth for an agent's numbers. The fee counts dispatched
+ * orders (shipped or delivered) using the amount stored on each order.
  */
-export async function getAgentReports(range?: {
-  start: Date;
-  end: Date;
-}): Promise<AgentReport[]> {
+export function buildAgentReport(
+  agent: AgentRecord,
+  orders: OrderForReport[],
+  paidOut: number,
+): AgentReport {
+  const r: AgentReport = {
+    agent,
+    totalOrders: orders.length,
+    pending: 0,
+    dispatched: 0,
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0,
+    dispatchedSales: 0,
+    commission: 0,
+    paidOut,
+    netDue: 0,
+  };
+  for (const o of orders) {
+    if (o.status === "PENDING") r.pending += 1;
+    else if (o.status === "CANCELLED") r.cancelled += 1;
+    else {
+      if (o.status === "SHIPPED") r.shipped += 1;
+      else r.delivered += 1;
+      r.dispatched += 1;
+      r.dispatchedSales += o.totalAmount;
+      r.commission += o.agentCommission ?? agent.commissionPerOrder;
+    }
+  }
+  r.netDue = r.commission - r.paidOut;
+  return r;
+}
+
+export type AgentTotals = Omit<AgentReport, "agent">;
+
+/** Column-wise sum of several agent reports (for the overview cards/footer). */
+export function sumAgentReports(reports: AgentReport[]): AgentTotals {
+  const t: AgentTotals = {
+    totalOrders: 0, pending: 0, dispatched: 0, shipped: 0, delivered: 0,
+    cancelled: 0, dispatchedSales: 0, commission: 0, paidOut: 0, netDue: 0,
+  };
+  for (const r of reports) {
+    for (const k of Object.keys(t) as (keyof AgentTotals)[]) t[k] += r[k];
+  }
+  return t;
+}
+
+/** Per-agent performance for orders/expenses created in `range` (omit for all-time). */
+export async function getAgentReports(range?: DateRange): Promise<AgentReport[]> {
   const agents = await getAgents();
   if (agents.length === 0) return [];
-  const createdAt = range ? { gte: range.start, lt: range.end } : undefined;
+  const createdAt = within(range);
 
   try {
     const [orders, expenses] = await Promise.all([
       prisma.order.findMany({
         where: { agentId: { not: null }, createdAt },
-        select: {
-          agentId: true,
-          status: true,
-          totalAmount: true,
-          agentCommissionPercent: true,
-        },
+        select: { agentId: true, status: true, totalAmount: true, agentCommission: true },
       }),
       prisma.expense.groupBy({
         by: ["agentId"],
@@ -350,52 +394,53 @@ export async function getAgentReports(range?: {
         _sum: { amount: true },
       }),
     ]);
-
     const paid = new Map(expenses.map((e) => [e.agentId, e._sum.amount ?? 0]));
-    const reports = new Map<string, AgentReport>(
-      agents.map((agent) => [
-        agent.id,
-        {
-          agent,
-          totalOrders: 0,
-          pending: 0,
-          shipped: 0,
-          delivered: 0,
-          cancelled: 0,
-          deliveredSales: 0,
-          commission: 0,
-          paidOut: paid.get(agent.id) ?? 0,
-        },
-      ]),
-    );
-
+    const byAgent = new Map<string, OrderForReport[]>();
     for (const o of orders) {
-      const r = reports.get(o.agentId!);
-      if (!r) continue; // agent deleted
-      r.totalOrders += 1;
-      if (o.status === "PENDING") r.pending += 1;
-      else if (o.status === "SHIPPED") r.shipped += 1;
-      else if (o.status === "CANCELLED") r.cancelled += 1;
-      else if (o.status === "DELIVERED") {
-        r.delivered += 1;
-        r.deliveredSales += o.totalAmount;
-        const pct = o.agentCommissionPercent ?? r.agent.commissionPercent;
-        r.commission += (o.totalAmount * pct) / 100;
-      }
+      byAgent.set(o.agentId!, [...(byAgent.get(o.agentId!) ?? []), o]);
     }
-    return [...reports.values()];
+    return agents.map((agent) =>
+      buildAgentReport(agent, byAgent.get(agent.id) ?? [], paid.get(agent.id) ?? 0),
+    );
   } catch {
-    return agents.map((agent) => ({
-      agent,
-      totalOrders: 0,
-      pending: 0,
-      shipped: 0,
-      delivered: 0,
-      cancelled: 0,
-      deliveredSales: 0,
-      commission: 0,
-      paidOut: 0,
-    }));
+    return agents.map((agent) => buildAgentReport(agent, [], 0));
+  }
+}
+
+export type AgentDetail = {
+  report: AgentReport;
+  orders: OrderWithDetails[];
+  expenses: ExpenseRecord[];
+};
+
+/** Everything the agent detail page shows for one agent in `range`. */
+export async function getAgentDetail(
+  id: string,
+  range?: DateRange,
+): Promise<AgentDetail | null> {
+  try {
+    const agent = await prisma.user.findFirst({
+      where: { id, role: "AGENT" },
+      select: agentRecordSelect,
+    });
+    if (!agent) return null;
+    const createdAt = within(range);
+    const [orders, expenses] = await Promise.all([
+      prisma.order.findMany({
+        where: { agentId: id, createdAt },
+        orderBy: { createdAt: "desc" },
+        include: orderInclude,
+      }),
+      prisma.expense.findMany({
+        where: { agentId: id, createdAt },
+        orderBy: { createdAt: "desc" },
+        include: { agent: { select: agentSelect } },
+      }),
+    ]);
+    const paidOut = expenses.reduce((n, e) => n + e.amount, 0);
+    return { report: buildAgentReport(agent, orders, paidOut), orders, expenses };
+  } catch {
+    return null;
   }
 }
 
@@ -405,13 +450,38 @@ export type ExpenseRecord = Prisma.ExpenseGetPayload<{
   include: { agent: { select: typeof agentSelect } };
 }>;
 
-export async function getExpenses(): Promise<ExpenseRecord[]> {
+/** Expenses created in `range` (omit for all-time), newest first. */
+export async function getExpenses(range?: DateRange): Promise<ExpenseRecord[]> {
   try {
     return await prisma.expense.findMany({
+      where: { createdAt: within(range) },
       orderBy: { createdAt: "desc" },
       include: { agent: { select: agentSelect } },
     });
   } catch {
     return [];
+  }
+}
+
+// --- Archive ----------------------------------------------------------------
+
+/**
+ * Business-month keys from the earliest order/expense to now, newest first.
+ * Drives the "archive" month pickers; always includes the current month.
+ */
+export async function getArchiveMonths(): Promise<string[]> {
+  try {
+    const [order, expense] = await Promise.all([
+      prisma.order.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+      prisma.expense.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+    ]);
+    const earliest = [order?.createdAt, expense?.createdAt]
+      .filter((d): d is Date => !!d)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    return earliest
+      ? businessMonthKeysSince(businessMonthKey(earliest))
+      : [currentBusinessMonth().key];
+  } catch {
+    return [currentBusinessMonth().key];
   }
 }

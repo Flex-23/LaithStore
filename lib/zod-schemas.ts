@@ -104,10 +104,11 @@ export const assignAgentSchema = z.object({
 
 // --- Agents -----------------------------------------------------------------
 
-const commissionPercent = z.coerce
+// Fixed fee (IQD) per dispatched order.
+const commissionPerOrder = z.coerce
   .number()
-  .min(0, "النسبة لا يمكن أن تكون سالبة")
-  .max(100, "النسبة لا يمكن أن تتجاوز 100%");
+  .min(0, "المبلغ لا يمكن أن يكون سالباً")
+  .max(10_000_000, "المبلغ كبير جداً");
 
 const agentPermissions = {
   canManageProducts: z.coerce.boolean(),
@@ -121,7 +122,7 @@ export const createAgentSchema = z.object({
   phone,
   governorate,
   password: z.string().min(6, "6 أحرف على الأقل"),
-  commissionPercent,
+  commissionPerOrder,
   ...agentPermissions,
 });
 
@@ -134,7 +135,7 @@ export const updateAgentSchema = z.object({
   password: z
     .string()
     .refine((v) => v === "" || v.length >= 6, "6 أحرف على الأقل"),
-  commissionPercent,
+  commissionPerOrder,
   ...agentPermissions,
 });
 

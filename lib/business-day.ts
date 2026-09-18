@@ -39,17 +39,57 @@ export type Range = { start: Date; end: Date };
 
 /** [start, end) of the business day containing `at`. */
 export function currentBusinessDay(at = new Date()): Range & { key: string } {
-  const key = businessDayKey(at);
+  return businessDayRange(businessDayKey(at));
+}
+
+/** [start, end) of the business day labelled `key` (YYYY-MM-DD). */
+export function businessDayRange(key: string): Range & { key: string } {
   const start = businessDayStart(key);
   return { key, start, end: new Date(start.getTime() + DAY_MS) };
 }
 
-/** [start, end) of the business month containing `at`. */
-export function currentBusinessMonth(at = new Date()): Range & { key: string } {
-  const key = businessMonthKey(at);
+/** [start, end) of the business month labelled `key` (YYYY-MM). */
+export function businessMonthRange(key: string): Range & { key: string } {
   const [y, m] = key.split("-").map(Number);
   const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
   return { key, start: businessMonthStart(key), end: businessMonthStart(next) };
+}
+
+/** [start, end) of the business month containing `at`. */
+export function currentBusinessMonth(at = new Date()): Range & { key: string } {
+  return businessMonthRange(businessMonthKey(at));
+}
+
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_KEY = /^\d{4}-\d{2}$/;
+
+export function isDayKey(value: string | undefined): value is string {
+  return !!value && DAY_KEY.test(value) && !Number.isNaN(businessDayStart(value).getTime());
+}
+
+export function isMonthKey(value: string | undefined): value is string {
+  return !!value && MONTH_KEY.test(value) && !Number.isNaN(businessMonthStart(value).getTime());
+}
+
+/** All business-day keys inside a business month, newest first. */
+export function businessDayKeysOfMonth(monthKey: string): string[] {
+  const { start, end } = businessMonthRange(monthKey);
+  const keys: string[] = [];
+  for (let t = start.getTime(); t < end.getTime(); t += DAY_MS) {
+    keys.push(businessDayKey(new Date(t + HOUR_MS)));
+  }
+  return keys.reverse();
+}
+
+/**
+ * Month keys from `fromKey` up to the current business month, newest first.
+ * Used to offer an archive of past months.
+ */
+export function businessMonthKeysSince(fromKey: string, at = new Date()): string[] {
+  const [fy, fm] = fromKey.split("-").map(Number);
+  const [ty, tm] = businessMonthKey(at).split("-").map(Number);
+  const count = Math.max(1, (ty * 12 + tm) - (fy * 12 + fm) + 1);
+  return recentBusinessMonthKeys(count, at);
 }
 
 /** Keys of the last `count` business days, newest first, ending with today. */
@@ -73,6 +113,26 @@ export function recentBusinessMonthKeys(count: number, at = new Date()): string[
     keys.push(`${y}-${String(m).padStart(2, "0")}`);
   }
   return keys;
+}
+
+// --- URL params -------------------------------------------------------------
+
+/** `?month=all` — no date filter. */
+export const ALL_PERIODS = "all";
+
+export type MonthSelection = {
+  /** Month key or ALL_PERIODS. */
+  key: string;
+  /** Undefined when every period is selected. */
+  range?: Range;
+  label: string;
+};
+
+/** Resolves a `?month=` param: a valid key, "all", or (default) the current month. */
+export function resolveMonthParam(value: string | undefined): MonthSelection {
+  if (value === ALL_PERIODS) return { key: ALL_PERIODS, label: "كل الفترات" };
+  const key = isMonthKey(value) ? value : businessMonthKey(new Date());
+  return { key, range: businessMonthRange(key), label: formatMonthKey(key) };
 }
 
 // --- Labels -----------------------------------------------------------------

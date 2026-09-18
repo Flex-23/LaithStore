@@ -1,35 +1,38 @@
-import { getActiveAgentsLite, getExpenses } from "@/lib/data";
+import { getActiveAgentsLite, getArchiveMonths, getExpenses } from "@/lib/data";
 import { requireAdminStaff } from "@/lib/permissions";
+import { resolveMonthParam } from "@/lib/business-day";
 import { PageHeader } from "@/components/admin/ui";
+import { MonthPicker } from "@/components/admin/month-picker";
 import { ExpenseAdmin } from "@/components/admin/expense-admin";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "الصرفيات" };
 
-export default async function AdminExpensesPage() {
+/** Monthly expense log: current month by default, older months in the archive. */
+export default async function AdminExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   await requireAdminStaff();
-  const [agents, expenses] = await Promise.all([
+  const { month } = await searchParams;
+  const selection = resolveMonthParam(month);
+
+  const [agents, expenses, months] = await Promise.all([
     getActiveAgentsLite(),
-    getExpenses(),
+    getExpenses(selection.range),
+    getArchiveMonths(),
   ]);
 
   return (
     <>
       <PageHeader
         title="الصرفيات"
-        description="سجّل المبالغ المصروفة وحدّد لمن صُرفت. ما يُصرف لمندوب يُخصم من نسبته في تقارير المندوبين."
-      />
-      <ExpenseAdmin
-        agents={agents}
-        expenses={expenses.map((e) => ({
-          id: e.id,
-          amount: e.amount,
-          recipientName: e.recipientName,
-          agent: e.agent,
-          note: e.note,
-          createdAt: e.createdAt.toISOString(),
-        }))}
-      />
+        description="سجّل المبالغ المصروفة وحدّد لمن صُرفت. السجل يبدأ من الصفر كل شهر ويبقى السابق في الأرشيف."
+      >
+        <MonthPicker months={months} value={selection.key} basePath="/admin/expenses" />
+      </PageHeader>
+      <ExpenseAdmin agents={agents} expenses={expenses} periodLabel={selection.label} />
     </>
   );
 }

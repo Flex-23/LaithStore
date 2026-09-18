@@ -37,8 +37,8 @@ model User {
   // --- Agent (المندوب) fields; only meaningful when role = AGENT ------------
   /** Sequential number assigned on creation; shown as AG-0001. */
   agentNumber       Int?    @unique
-  /** Commission (%) the agent earns on each delivered order they handle. */
-  commissionPercent Float   @default(0)
+  /** Fixed amount (IQD) the agent earns per order they dispatch (shipped/delivered). */
+  commissionPerOrder Float  @default(0)
   canManageProducts Boolean @default(false)
   canManageOrders   Boolean @default(false)
   canViewDashboard  Boolean @default(false)
@@ -93,8 +93,8 @@ model Order {
   /** Agent handling this order (set automatically on first status change, or by the admin). */
   agentId                String?
   agent                  User?   @relation("AgentOrders", fields: [agentId], references: [id], onDelete: SetNull)
-  /** Commission % snapshotted at assignment time, so later rate changes don't rewrite history. */
-  agentCommissionPercent Float?
+  /** Agent fee (IQD) snapshotted at assignment time, so later rate changes don't rewrite history. */
+  agentCommission        Float?
 
   @@index([userId])
   @@index([status])

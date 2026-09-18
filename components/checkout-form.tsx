@@ -6,6 +6,7 @@ import { useCart } from "./providers/cart-context";
 import { useToast } from "./providers/toast";
 import { SmartImage } from "./smart-image";
 import { ArrowRightIcon, CheckIcon, UserIcon } from "./icons";
+import { DetailItem } from "./detail-item";
 import { formatPrice } from "@/lib/format";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FLAT } from "@/lib/constants";
 import { placeOrder } from "@/app/actions/orders";
@@ -100,10 +101,10 @@ export function CheckoutForm({ profile }: { profile: Profile | null }) {
             </div>
             {profile ? (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Detail label="الاسم" value={profile.name} />
-                <Detail label="الهاتف" value={profile.phone} ltr />
-                <Detail label="المحافظة" value={profile.governorate} />
-                <Detail label="طريقة الدفع" value="الدفع عند الاستلام" />
+                <DetailItem label="الاسم" value={profile.name} />
+                <DetailItem label="الهاتف" value={profile.phone} ltr />
+                <DetailItem label="المحافظة" value={profile.governorate} />
+                <DetailItem label="طريقة الدفع" value="الدفع عند الاستلام" />
               </div>
             ) : (
               <p className="mt-4 text-sm text-danger">
@@ -175,23 +176,6 @@ export function CheckoutForm({ profile }: { profile: Profile | null }) {
           </div>
         </aside>
       </div>
-    </div>
-  );
-}
-
-function Detail({
-  label,
-  value,
-  ltr,
-}: {
-  label: string;
-  value: string;
-  ltr?: boolean;
-}) {
-  return (
-    <div className="rounded-xl surface-2 px-4 py-3">
-      <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-0.5 font-medium ${ltr ? "ltr text-start" : ""}`}>{value}</p>
     </div>
   );
 }

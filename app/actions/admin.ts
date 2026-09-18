@@ -261,8 +261,18 @@ function refreshOrders() {
 }
 
 /**
+ * Order fields that tie it to an agent. The fee is snapshotted at assignment
+ * time so later changes to the agent's rate don't rewrite history.
+ */
+function agentAssignment(agent: { id: string; commissionPerOrder: number } | null) {
+  return agent
+    ? { agentId: agent.id, agentCommission: agent.commissionPerOrder }
+    : { agentId: null, agentCommission: null };
+}
+
+/**
  * Changes an order's status. When an agent does this on an unassigned order,
- * the order becomes theirs (commission % snapshotted at that moment).
+ * the order becomes theirs.
  */
 export async function updateOrderStatusAction(formData: FormData) {
   const staff = await staffWith("orders");
@@ -280,12 +290,7 @@ export async function updateOrderStatusAction(formData: FormData) {
       const claim = staff.role === "AGENT" && order && !order.agentId;
       await prisma.order.update({
         where: { id: parsed.data.orderId },
-        data: {
-          status: parsed.data.status,
-          ...(claim
-            ? { agentId: staff.id, agentCommissionPercent: staff.commissionPercent }
-            : {}),
-        },
+        data: { status: parsed.data.status, ...(claim ? agentAssignment(staff) : {}) },
       });
     } catch {
       /* ignore */
@@ -304,7 +309,7 @@ export async function claimOrderAction(formData: FormData) {
     try {
       await prisma.order.updateMany({
         where: { id: orderId, agentId: null },
-        data: { agentId: staff.id, agentCommissionPercent: staff.commissionPercent },
+        data: agentAssignment(staff),
       });
     } catch {
       /* ignore */
@@ -323,22 +328,18 @@ export async function assignOrderAgentAction(formData: FormData) {
   });
   if (parsed.success) {
     try {
-      if (!parsed.data.agentId) {
+      const agent = parsed.data.agentId
+        ? await prisma.user.findFirst({
+            where: { id: parsed.data.agentId, role: "AGENT" },
+            select: { id: true, commissionPerOrder: true },
+          })
+        : null;
+      // An unknown agent id is ignored rather than silently unassigning.
+      if (!parsed.data.agentId || agent) {
         await prisma.order.update({
           where: { id: parsed.data.orderId },
-          data: { agentId: null, agentCommissionPercent: null },
+          data: agentAssignment(agent),
         });
-      } else {
-        const agent = await prisma.user.findFirst({
-          where: { id: parsed.data.agentId, role: "AGENT" },
-          select: { id: true, commissionPercent: true },
-        });
-        if (agent) {
-          await prisma.order.update({
-            where: { id: parsed.data.orderId },
-            data: { agentId: agent.id, agentCommissionPercent: agent.commissionPercent },
-          });
-        }
       }
     } catch {
       /* ignore */

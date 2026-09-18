@@ -295,7 +295,7 @@ async function main() {
       password: agentPassword,
       role: Role.AGENT,
       agentNumber: 1,
-      commissionPercent: 5,
+      commissionPerOrder: 2000,
       canManageOrders: true,
       canViewDashboard: true,
     },

@@ -14,7 +14,7 @@ export type Staff = {
   name: string;
   role: Role;
   agentNumber: number | null;
-  commissionPercent: number;
+  commissionPerOrder: number;
   permissions: Permissions;
 };
 
@@ -35,7 +35,7 @@ export async function getStaff(): Promise<Staff | null> {
       name: user.name,
       role: user.role,
       agentNumber: user.agentNumber,
-      commissionPercent: user.commissionPercent,
+      commissionPerOrder: user.commissionPerOrder,
       permissions:
         user.role === "ADMIN"
           ? ALL

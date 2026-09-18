@@ -14,23 +14,9 @@ export default async function AdminAgentsPage() {
     <>
       <PageHeader
         title="المندوبون"
-        description="أضف مندوبين، حدّد صلاحياتهم ونسبتهم من كل طلب. يدخل المندوب من صفحة دخول الإدارة برقم هاتفه وكلمة مروره."
+        description="أضف مندوبين، حدّد صلاحياتهم وأجرهم عن كل طلب. يدخل المندوب من صفحة دخول الإدارة برقم هاتفه وكلمة مروره."
       />
-      <AgentAdmin
-        agents={agents.map((a) => ({
-          id: a.id,
-          name: a.name,
-          phone: a.phone,
-          governorate: a.governorate,
-          agentNumber: a.agentNumber,
-          commissionPercent: a.commissionPercent,
-          canManageProducts: a.canManageProducts,
-          canManageOrders: a.canManageOrders,
-          canViewDashboard: a.canViewDashboard,
-          canManageHome: a.canManageHome,
-          isActive: a.isActive,
-        }))}
-      />
+      <AgentAdmin agents={agents} />
     </>
   );
 }

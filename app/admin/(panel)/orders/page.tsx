@@ -47,7 +47,7 @@ export default async function AdminOrdersPage({
         description={
           isAdmin
             ? "طلبات العملاء، تفاصيلها، حالة التنفيذ والمندوب المسؤول."
-            : "غيّر حالة الطلب أو استلمه ليُسجَّل باسمك وتُحتسب نسبتك عند التوصيل."
+            : "غيّر حالة الطلب أو استلمه ليُسجَّل باسمك ويُحتسب أجرك عند إخراجه."
         }
       >
         {!isAdmin && (
@@ -184,10 +184,9 @@ export default async function AdminOrdersPage({
                     <p className="font-serif text-2xl">
                       {formatPrice(order.totalAmount)}
                     </p>
-                    {order.agent && order.agentCommissionPercent != null && (
+                    {order.agent && order.agentCommission != null && (
                       <p className="text-xs text-muted">
-                        نسبة المندوب {formatNumber(order.agentCommissionPercent)}% ·{" "}
-                        {formatPrice((order.totalAmount * order.agentCommissionPercent) / 100)}
+                        أجر المندوب {formatPrice(order.agentCommission)}
                       </p>
                     )}
                   </div>

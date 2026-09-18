@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Field, SelectField } from "@/components/field";
 import { useToast } from "@/components/providers/toast";
 import { CloseIcon, TrashIcon } from "@/components/icons";
@@ -11,8 +12,9 @@ import {
   deleteAgentAction,
 } from "@/app/actions/agents";
 import type { AdminState } from "@/app/actions/admin";
-import { GOVERNORATES } from "@/lib/constants";
-import { formatNumber } from "@/lib/format";
+import type { AgentRecord } from "@/lib/data";
+import { CURRENCY, GOVERNORATES } from "@/lib/constants";
+import { formatNumber, formatPrice } from "@/lib/format";
 import {
   agentCode,
   PERMISSIONS,
@@ -20,19 +22,7 @@ import {
   PERMISSION_LABELS,
 } from "@/lib/agent";
 
-export type AgentRow = {
-  id: string;
-  name: string;
-  phone: string;
-  governorate: string;
-  agentNumber: number | null;
-  commissionPercent: number;
-  canManageProducts: boolean;
-  canManageOrders: boolean;
-  canViewDashboard: boolean;
-  canManageHome: boolean;
-  isActive: boolean;
-};
+type AgentRow = AgentRecord;
 
 export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
   const router = useRouter();
@@ -128,15 +118,15 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                 error={state.fieldErrors?.password}
               />
               <Field
-                label="النسبة من كل طلب (%)"
-                name="commissionPercent"
+                label={`الأجر لكل طلب (${CURRENCY})`}
+                name="commissionPerOrder"
                 type="number"
                 min="0"
-                max="100"
-                step="0.5"
-                placeholder="0"
-                defaultValue={editing?.commissionPercent ?? 0}
-                error={state.fieldErrors?.commissionPercent}
+                step="250"
+                placeholder="2000"
+                defaultValue={editing?.commissionPerOrder ?? 0}
+                hint="يُحتسب لكل طلب يُخرجه (تم الشحن أو التوصيل)"
+                error={state.fieldErrors?.commissionPerOrder}
               />
             </div>
 
@@ -151,7 +141,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                         type="checkbox"
                         name={PERMISSION_FIELDS[perm]}
                         defaultChecked={editing ? Boolean(editing[field]) : false}
-                        className="h-4 w-4 accent-[var(--brand)]"
+                        className="h-4 w-4 accent-brand"
                       />
                       {PERMISSION_LABELS[perm]}
                     </label>
@@ -178,7 +168,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
         </div>
       </div>
 
-      {/* List */}
+      {/* List — essentials only; everything else lives on the detail page. */}
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-serif text-xl">المندوبون</h2>
@@ -190,80 +180,63 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
-                  <th className="px-5 py-3 font-medium">الرقم</th>
-                  <th className="px-5 py-3 font-medium">المندوب</th>
-                  <th className="px-5 py-3 font-medium">النسبة</th>
-                  <th className="px-5 py-3 font-medium">الصلاحيات</th>
-                  <th className="px-5 py-3 font-medium">الحالة</th>
-                  <th className="px-5 py-3 text-end font-medium">إجراءات</th>
+                  <th className="px-4 py-3 font-medium">الاسم</th>
+                  <th className="px-4 py-3 font-medium">الرقم</th>
+                  <th className="px-4 py-3 font-medium">الأجر لكل طلب</th>
+                  <th className="px-4 py-3 font-medium">الحالة</th>
+                  <th className="px-4 py-3 text-end font-medium">الإجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {agents.map((a) => {
-                  const granted = PERMISSIONS.filter((p) =>
-                    Boolean(a[PERMISSION_FIELDS[p] as keyof AgentRow]),
-                  );
-                  return (
-                    <tr key={a.id} className={`hover:bg-surface-2/60 ${a.isActive ? "" : "opacity-60"}`}>
-                      <td className="whitespace-nowrap px-5 py-3 font-mono text-xs">{agentCode(a.agentNumber)}</td>
-                      <td className="px-5 py-3">
-                        <p className="whitespace-nowrap font-medium">{a.name}</p>
-                        <p className="ltr text-start text-xs text-muted">{a.phone}</p>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3 font-medium">
-                        {formatNumber(a.commissionPercent)}%
-                      </td>
-                      <td className="px-5 py-3">
-                        {granted.length === 0 ? (
-                          <span className="text-xs text-muted">بلا صلاحيات</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {granted.map((p) => (
-                              <span key={p} className="badge">
-                                {PERMISSION_LABELS[p].split(" (")[0]}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            a.isActive ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
-                          }`}
-                        >
-                          {a.isActive ? "نشط" : "موقوف"}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button onClick={() => startEdit(a)} className="btn btn-outline btn-sm">
-                            تعديل
+                {agents.map((a) => (
+                  <tr key={a.id} className={`hover:bg-surface-2/60 ${a.isActive ? "" : "opacity-60"}`}>
+                    <td className="truncate px-4 py-3 font-medium">{a.name}</td>
+                    <td className="ltr px-4 py-3 text-start font-mono text-xs">
+                      {agentCode(a.agentNumber)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium">
+                      {formatPrice(a.commissionPerOrder)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          a.isActive ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
+                        }`}
+                      >
+                        {a.isActive ? "نشط" : "موقوف"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <Link href={`/admin/agents/${a.id}`} className="btn btn-primary btn-sm">
+                          تفاصيل
+                        </Link>
+                        <button onClick={() => startEdit(a)} className="btn btn-outline btn-sm">
+                          تعديل
+                        </button>
+                        <form action={toggleAgentActiveAction}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <input type="hidden" name="active" value={a.isActive ? "0" : "1"} />
+                          <button className="btn btn-ghost btn-sm">
+                            {a.isActive ? "إيقاف" : "تفعيل"}
                           </button>
-                          <form action={toggleAgentActiveAction}>
-                            <input type="hidden" name="id" value={a.id} />
-                            <input type="hidden" name="active" value={a.isActive ? "0" : "1"} />
-                            <button className="btn btn-ghost btn-sm">
-                              {a.isActive ? "إيقاف" : "تفعيل"}
-                            </button>
-                          </form>
-                          <form action={deleteAgentAction}>
-                            <input type="hidden" name="id" value={a.id} />
-                            <button
-                              className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
-                              aria-label={`حذف ${a.name}`}
-                            >
-                              <TrashIcon width={17} height={17} />
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </form>
+                        <form action={deleteAgentAction}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <button
+                            className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
+                            aria-label={`حذف ${a.name}`}
+                          >
+                            <TrashIcon width={17} height={17} />
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

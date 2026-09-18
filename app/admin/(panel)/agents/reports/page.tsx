@@ -1,121 +1,55 @@
 import Link from "next/link";
-import { getAgentReports } from "@/lib/data";
+import { getAgentReports, getArchiveMonths, sumAgentReports } from "@/lib/data";
 import { requireAdminStaff } from "@/lib/permissions";
 import { agentCode } from "@/lib/agent";
-import {
-  currentBusinessDay,
-  currentBusinessMonth,
-  formatDayKey,
-  formatMonthKey,
-} from "@/lib/business-day";
-import { PageHeader, StatCard } from "@/components/admin/ui";
-import { ChartIcon, TruckIcon, UsersIcon, WalletIcon } from "@/components/icons";
+import { resolveMonthParam } from "@/lib/business-day";
+import { PageHeader } from "@/components/admin/ui";
+import { AgentStats } from "@/components/admin/agent-stats";
+import { MonthPicker } from "@/components/admin/month-picker";
 import { formatNumber, formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "تقارير المندوبين" };
 
-type RangeKind = "all" | "month" | "today";
-
-const RANGES: { value: RangeKind; label: string }[] = [
-  { value: "all", label: "الكل" },
-  { value: "month", label: "هذا الشهر" },
-  { value: "today", label: "اليوم" },
-];
-
+/**
+ * Monthly agent report. Numbers "reset" each business month, but nothing is
+ * deleted: every past month stays available in the archive picker.
+ */
 export default async function AgentReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   await requireAdminStaff();
-  const { range: rangeParam } = await searchParams;
-  const range: RangeKind =
-    rangeParam === "month" ? "month" : rangeParam === "today" ? "today" : "all";
+  const { month } = await searchParams;
+  const selection = resolveMonthParam(month);
 
-  const period =
-    range === "month"
-      ? currentBusinessMonth()
-      : range === "today"
-        ? currentBusinessDay()
-        : undefined;
-  const periodLabel =
-    range === "month"
-      ? formatMonthKey(currentBusinessMonth().key)
-      : range === "today"
-        ? formatDayKey(currentBusinessDay().key)
-        : "منذ البداية";
-
-  const reports = await getAgentReports(period);
-  const totals = reports.reduce(
-    (t, r) => ({
-      orders: t.orders + r.totalOrders,
-      delivered: t.delivered + r.delivered,
-      cancelled: t.cancelled + r.cancelled,
-      commission: t.commission + r.commission,
-      paidOut: t.paidOut + r.paidOut,
-    }),
-    { orders: 0, delivered: 0, cancelled: 0, commission: 0, paidOut: 0 },
-  );
+  const [reports, months] = await Promise.all([
+    getAgentReports(selection.range),
+    getArchiveMonths(),
+  ]);
+  const totals = sumAgentReports(reports);
+  const monthHref = (agentId: string) => `/admin/agents/${agentId}?month=${selection.key}`;
 
   return (
     <>
       <PageHeader
         title="تقارير المندوبين"
-        description="عدد الطلبات لكل مندوب، ما وصل وما أُلغي، ومجموع النسبة المستحقة له."
+        description="لكل مندوب: الطلبات المُخرَجة والواصلة والملغاة، الأجر المستحق، والمصروف له. يبدأ التقرير من الصفر مع كل شهر جديد ويبقى السابق في الأرشيف."
       >
-        <div className="grid grid-cols-3 rounded-full surface-2 p-1 text-sm font-medium">
-          {RANGES.map((r) => (
-            <Link
-              key={r.value}
-              href={`/admin/agents/reports?range=${r.value}`}
-              className={`rounded-full px-4 py-1.5 text-center transition-colors ${
-                range === r.value ? "bg-surface shadow-sm" : "text-muted"
-              }`}
-            >
-              {r.label}
-            </Link>
-          ))}
-        </div>
+        <MonthPicker months={months} value={selection.key} basePath="/admin/agents/reports" />
       </PageHeader>
 
       <p className="mb-3 text-sm text-muted">
-        الفترة: <span className="font-medium text-foreground">{periodLabel}</span>
+        الفترة: <span className="font-medium text-foreground">{selection.label}</span>
       </p>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="مجموع النسب المستحقة"
-          value={formatPrice(totals.commission)}
-          sub="على الطلبات الواصلة"
-          icon={<ChartIcon width={18} height={18} className="text-background" />}
-          accent
-        />
-        <StatCard
-          label="طلبات المندوبين"
-          value={formatNumber(totals.orders)}
-          sub={`${formatNumber(totals.delivered)} واصلة · ${formatNumber(totals.cancelled)} ملغاة`}
-          icon={<TruckIcon width={18} height={18} />}
-        />
-        <StatCard
-          label="المصروف للمندوبين"
-          value={formatPrice(totals.paidOut)}
-          sub="من صفحة الصرفيات"
-          icon={<WalletIcon width={18} height={18} />}
-        />
-        <StatCard
-          label="المندوبون"
-          value={formatNumber(reports.length)}
-          sub={`${formatNumber(reports.filter((r) => r.agent.isActive).length)} نشط`}
-          icon={<UsersIcon width={18} height={18} />}
-        />
-      </div>
+      <AgentStats totals={totals} />
 
       <section className="mt-6 card overflow-hidden">
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-serif text-xl">تفاصيل كل مندوب</h2>
           <p className="text-sm text-muted">
-            النسبة تُحتسب على الطلبات الواصلة فقط، بالنسبة المثبّتة على كل طلب وقت إسناده.
+            الأجر يُحتسب على الطلبات المُخرَجة (تم الشحن أو التوصيل) بالمبلغ المثبّت على كل طلب وقت إسناده.
           </p>
         </div>
         {reports.length === 0 ? (
@@ -131,71 +65,37 @@ export default async function AgentReportsPage({
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
                   <th className="px-5 py-3 font-medium">المندوب</th>
-                  <th className="px-5 py-3 font-medium">النسبة</th>
-                  <th className="px-5 py-3 font-medium">إجمالي الطلبات</th>
+                  <th className="px-5 py-3 font-medium">الأجر/طلب</th>
+                  <th className="px-5 py-3 font-medium">الطلبات</th>
                   <th className="px-5 py-3 font-medium">قيد الانتظار</th>
-                  <th className="px-5 py-3 font-medium">مُخرَجة (تم الشحن)</th>
+                  <th className="px-5 py-3 font-medium">مُخرَجة</th>
                   <th className="px-5 py-3 font-medium">واصلة</th>
                   <th className="px-5 py-3 font-medium">ملغاة</th>
-                  <th className="px-5 py-3 font-medium">مبيعات الواصلة</th>
-                  <th className="px-5 py-3 font-medium">مجموع النسبة</th>
+                  <th className="px-5 py-3 font-medium">مبيعات المُخرَجة</th>
+                  <th className="px-5 py-3 font-medium">الأجر المستحق</th>
                   <th className="px-5 py-3 font-medium">المصروف له</th>
                   <th className="px-5 py-3 font-medium">المتبقي له</th>
+                  <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {reports.map((r) => {
-                  const balance = r.commission - r.paidOut;
-                  return (
-                    <tr key={r.agent.id} className={`hover:bg-surface-2/60 ${r.agent.isActive ? "" : "opacity-60"}`}>
-                      <td className="px-5 py-3">
-                        <p className="font-medium">{r.agent.name}</p>
-                        <p className="ltr text-start font-mono text-xs text-muted">
-                          {agentCode(r.agent.agentNumber)}
-                        </p>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3">{formatNumber(r.agent.commissionPercent)}%</td>
-                      <td className="px-5 py-3 font-medium">{formatNumber(r.totalOrders)}</td>
-                      <td className="px-5 py-3 text-muted">{formatNumber(r.pending)}</td>
-                      <td className="px-5 py-3">{formatNumber(r.shipped)}</td>
-                      <td className="px-5 py-3 font-medium text-success">{formatNumber(r.delivered)}</td>
-                      <td className={`px-5 py-3 ${r.cancelled > 0 ? "text-danger" : "text-muted"}`}>
-                        {formatNumber(r.cancelled)}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3">{formatPrice(r.deliveredSales)}</td>
-                      <td className="whitespace-nowrap px-5 py-3 font-semibold text-brand">
-                        {formatPrice(r.commission)}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3">{formatPrice(r.paidOut)}</td>
-                      <td
-                        className={`whitespace-nowrap px-5 py-3 font-semibold ${
-                          balance > 0 ? "text-brand-strong" : balance < 0 ? "text-danger" : "text-muted"
-                        }`}
-                      >
-                        {formatPrice(balance)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {reports.map((r) => (
+                  <ReportRow key={r.agent.id} r={r} href={monthHref(r.agent.id)} />
+                ))}
               </tbody>
               <tfoot>
                 <tr className="border-t border-border bg-surface-2/40 font-semibold">
                   <td className="px-5 py-3" colSpan={2}>الإجمالي</td>
-                  <td className="px-5 py-3">{formatNumber(totals.orders)}</td>
-                  <td className="px-5 py-3 text-muted">
-                    {formatNumber(reports.reduce((n, r) => n + r.pending, 0))}
-                  </td>
-                  <td className="px-5 py-3">{formatNumber(reports.reduce((n, r) => n + r.shipped, 0))}</td>
+                  <td className="px-5 py-3">{formatNumber(totals.totalOrders)}</td>
+                  <td className="px-5 py-3 text-muted">{formatNumber(totals.pending)}</td>
+                  <td className="px-5 py-3">{formatNumber(totals.dispatched)}</td>
                   <td className="px-5 py-3 text-success">{formatNumber(totals.delivered)}</td>
                   <td className="px-5 py-3 text-danger">{formatNumber(totals.cancelled)}</td>
-                  <td className="whitespace-nowrap px-5 py-3">
-                    {formatPrice(reports.reduce((n, r) => n + r.deliveredSales, 0))}
-                  </td>
+                  <td className="whitespace-nowrap px-5 py-3">{formatPrice(totals.dispatchedSales)}</td>
                   <td className="whitespace-nowrap px-5 py-3 text-brand">{formatPrice(totals.commission)}</td>
                   <td className="whitespace-nowrap px-5 py-3">{formatPrice(totals.paidOut)}</td>
-                  <td className="whitespace-nowrap px-5 py-3">
-                    {formatPrice(totals.commission - totals.paidOut)}
-                  </td>
+                  <td className="whitespace-nowrap px-5 py-3">{formatPrice(totals.netDue)}</td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>
@@ -203,5 +103,43 @@ export default async function AgentReportsPage({
         )}
       </section>
     </>
+  );
+}
+
+function ReportRow({
+  r,
+  href,
+}: {
+  r: Awaited<ReturnType<typeof getAgentReports>>[number];
+  href: string;
+}) {
+  return (
+    <tr className={`hover:bg-surface-2/60 ${r.agent.isActive ? "" : "opacity-60"}`}>
+      <td className="px-5 py-3">
+        <p className="whitespace-nowrap font-medium">{r.agent.name}</p>
+        <p className="ltr text-start font-mono text-xs text-muted">{agentCode(r.agent.agentNumber)}</p>
+      </td>
+      <td className="whitespace-nowrap px-5 py-3">{formatPrice(r.agent.commissionPerOrder)}</td>
+      <td className="px-5 py-3 font-medium">{formatNumber(r.totalOrders)}</td>
+      <td className="px-5 py-3 text-muted">{formatNumber(r.pending)}</td>
+      <td className="px-5 py-3">{formatNumber(r.dispatched)}</td>
+      <td className="px-5 py-3 font-medium text-success">{formatNumber(r.delivered)}</td>
+      <td className={`px-5 py-3 ${r.cancelled > 0 ? "text-danger" : "text-muted"}`}>
+        {formatNumber(r.cancelled)}
+      </td>
+      <td className="whitespace-nowrap px-5 py-3">{formatPrice(r.dispatchedSales)}</td>
+      <td className="whitespace-nowrap px-5 py-3 font-semibold text-brand">{formatPrice(r.commission)}</td>
+      <td className="whitespace-nowrap px-5 py-3">{formatPrice(r.paidOut)}</td>
+      <td
+        className={`whitespace-nowrap px-5 py-3 font-semibold ${
+          r.netDue > 0 ? "text-brand-strong" : r.netDue < 0 ? "text-danger" : "text-muted"
+        }`}
+      >
+        {formatPrice(r.netDue)}
+      </td>
+      <td className="px-5 py-3 text-end">
+        <Link href={href} className="btn btn-outline btn-sm">تفاصيل</Link>
+      </td>
+    </tr>
   );
 }
