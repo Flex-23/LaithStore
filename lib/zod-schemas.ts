@@ -96,6 +96,78 @@ export const orderStatusSchema = z.object({
   status: z.enum(["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"]),
 });
 
+export const assignAgentSchema = z.object({
+  orderId: z.string().min(1),
+  // Empty string = unassign.
+  agentId: z.string().trim(),
+});
+
+// --- Agents -----------------------------------------------------------------
+
+const commissionPercent = z.coerce
+  .number()
+  .min(0, "النسبة لا يمكن أن تكون سالبة")
+  .max(100, "النسبة لا يمكن أن تتجاوز 100%");
+
+const agentPermissions = {
+  canManageProducts: z.coerce.boolean(),
+  canManageOrders: z.coerce.boolean(),
+  canViewDashboard: z.coerce.boolean(),
+  canManageHome: z.coerce.boolean(),
+};
+
+export const createAgentSchema = z.object({
+  name: z.string().trim().min(2, "الاسم قصير جداً").max(60, "الاسم طويل جداً"),
+  phone,
+  governorate,
+  password: z.string().min(6, "6 أحرف على الأقل"),
+  commissionPercent,
+  ...agentPermissions,
+});
+
+export const updateAgentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(2, "الاسم قصير جداً").max(60, "الاسم طويل جداً"),
+  phone,
+  governorate,
+  // Blank keeps the current password.
+  password: z
+    .string()
+    .refine((v) => v === "" || v.length >= 6, "6 أحرف على الأقل"),
+  commissionPercent,
+  ...agentPermissions,
+});
+
+// --- Expenses ---------------------------------------------------------------
+
+export const expenseSchema = z.object({
+  amount: z.coerce.number().positive("أدخل مبلغاً أكبر من صفر"),
+  // Either an agent id or "" (free-text recipient).
+  agentId: z.string().trim(),
+  recipientName: z.string().trim().max(80, "الاسم طويل جداً"),
+  note: z.string().trim().max(240, "الملاحظة طويلة جداً"),
+});
+
+// --- Home page content ------------------------------------------------------
+
+const shortText = (max: number) =>
+  z.string().trim().min(1, "هذا الحقل مطلوب").max(max, "النص طويل جداً");
+
+export const homeContentSchema = z.object({
+  heroEyebrow: shortText(60),
+  heroTitle: shortText(120),
+  heroHighlight: z.string().trim().max(40, "النص طويل جداً"),
+  heroSubtitle: shortText(240),
+  heroCta: shortText(40),
+  heroImage1: image,
+  heroImage2: image,
+  promoEyebrow: shortText(60),
+  promoTitle: shortText(80),
+  promoText: shortText(240),
+  promoCta: shortText(40),
+  promoImage: image,
+});
+
 export const checkoutItemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.coerce.number().int().positive(),

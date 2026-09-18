@@ -22,6 +22,7 @@ import { PageHeader, StatCard, BarRow } from "@/components/admin/ui";
 import { ChartIcon, PackageIcon, TagIcon, TruckIcon } from "@/components/icons";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
+import { requireAdminStaff } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "التقارير" };
@@ -41,6 +42,7 @@ export default async function AdminReportsPage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
+  await requireAdminStaff();
   const { range: rangeParam } = await searchParams;
   const range: RangeKind = rangeParam === "monthly" ? "monthly" : "daily";
 

@@ -9,18 +9,21 @@ import {
 } from "@/components/store-ui";
 import { SmartImage } from "@/components/smart-image";
 import { ArrowRightIcon } from "@/components/icons";
-import { getHomeCategories } from "@/lib/data";
+import { getHomeCategories, getHomeContent } from "@/lib/data";
 import { PRODUCTS_PER_CATEGORY } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const categories = await getHomeCategories();
+  const [categories, content] = await Promise.all([
+    getHomeCategories(),
+    getHomeContent(),
+  ]);
 
   if (categories.length === 0) {
     return (
       <>
-        <Hero />
+        <Hero content={content} />
         <SetupNotice />
       </>
     );
@@ -28,7 +31,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero />
+      <Hero content={content} />
       <TrustMarquee />
 
       {/* Category showcase */}
@@ -69,34 +72,31 @@ export default async function HomePage() {
           </section>
         ))}
 
-      {/* Editorial promo banner */}
+      {/* Editorial promo banner (editable from /admin/home) */}
       <section className="container-page py-16">
         <div className="relative overflow-hidden rounded-[2rem] border border-border">
           <SmartImage
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80"
-            alt="تشكيلة الموسم"
+            src={content.promoImage}
+            alt={content.promoTitle}
             sizes="100vw"
             className="h-80 w-full sm:h-96"
           />
           <div className="absolute inset-0 bg-linear-to-l from-black/70 via-black/40 to-transparent" />
           <div className="absolute inset-0 flex flex-col justify-center gap-4 p-8 text-white sm:p-14">
-            <span className="eyebrow !text-white/80">تشكيلة الموسم</span>
+            <span className="eyebrow !text-white/80">{content.promoEyebrow}</span>
             <h2 className="max-w-md text-3xl text-white sm:text-4xl">
-              قطع تستحق الاقتناء
+              {content.promoTitle}
             </h2>
-            <p className="max-w-sm text-white/80">
-              اكتشف منتجاتنا الأكثر طلباً، الآن مع خصومات موسمية.
-            </p>
+            <p className="max-w-sm text-white/80">{content.promoText}</p>
             <Link
               href="/products"
               className="btn btn-brand w-fit"
             >
-              اكتشف الآن <ArrowRightIcon width={18} height={18} />
+              {content.promoCta} <ArrowRightIcon width={18} height={18} />
             </Link>
           </div>
         </div>
       </section>
-
     </>
   );
 }

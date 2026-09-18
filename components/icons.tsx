@@ -203,6 +203,35 @@ export function LogoutIcon({ className = "", ...p }: IconProps) {
   );
 }
 
+export function HomeIcon(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M3 11 12 4l9 7" />
+      <path d="M5 10v10h5v-6h4v6h5V10" />
+    </svg>
+  );
+}
+
+export function UsersIcon(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <circle cx="9" cy="8" r="3.4" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 4.5a3.4 3.4 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2" />
+    </svg>
+  );
+}
+
+export function WalletIcon(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+      <path d="M16 12h4v4h-4a2 2 0 0 1 0-4Z" />
+      <path d="M3 9h17" />
+    </svg>
+  );
+}
+
 export function UploadIcon(p: IconProps) {
   return (
     <svg {...base} {...p}>

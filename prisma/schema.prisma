@@ -13,6 +13,7 @@ datasource db {
 enum Role {
   USER
   ADMIN
+  AGENT
 }
 
 enum OrderStatus {
@@ -32,6 +33,21 @@ model User {
   orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // --- Agent (المندوب) fields; only meaningful when role = AGENT ------------
+  /** Sequential number assigned on creation; shown as AG-0001. */
+  agentNumber       Int?    @unique
+  /** Commission (%) the agent earns on each delivered order they handle. */
+  commissionPercent Float   @default(0)
+  canManageProducts Boolean @default(false)
+  canManageOrders   Boolean @default(false)
+  canViewDashboard  Boolean @default(false)
+  canManageHome     Boolean @default(false)
+  /** Deactivated agents can't sign in. */
+  isActive          Boolean @default(true)
+
+  assignedOrders Order[]   @relation("AgentOrders")
+  expenses       Expense[] @relation("ExpenseRecipient")
 
   @@index([role])
 }
@@ -74,8 +90,15 @@ model Order {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  /** Agent handling this order (set automatically on first status change, or by the admin). */
+  agentId                String?
+  agent                  User?   @relation("AgentOrders", fields: [agentId], references: [id], onDelete: SetNull)
+  /** Commission % snapshotted at assignment time, so later rate changes don't rewrite history. */
+  agentCommissionPercent Float?
+
   @@index([userId])
   @@index([status])
+  @@index([agentId])
 }
 
 model OrderItem {
@@ -89,4 +112,38 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+/// Money paid out by the admin (to an agent or anyone else).
+model Expense {
+  id            String   @id @default(cuid())
+  amount        Float
+  /** Who received the money (agent name copied here, or free text). */
+  recipientName String
+  agentId       String?
+  agent         User?    @relation("ExpenseRecipient", fields: [agentId], references: [id], onDelete: SetNull)
+  note          String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  @@index([agentId])
+  @@index([createdAt])
+}
+
+/// Editable copy/images for the storefront home page (single row, id = "main").
+model HomeContent {
+  id            String   @id @default("main")
+  heroEyebrow   String
+  /** Use a line break to split the headline; `heroHighlight` is colored if found. */
+  heroTitle     String   @db.Text
+  heroHighlight String
+  heroSubtitle  String   @db.Text
+  heroCta       String
+  heroImage1    String   @db.Text
+  heroImage2    String   @db.Text
+  promoEyebrow  String
+  promoTitle    String
+  promoText     String   @db.Text
+  promoCta      String
+  promoImage    String   @db.Text
+  updatedAt     DateTime @updatedAt
 }

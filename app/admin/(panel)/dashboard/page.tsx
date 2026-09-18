@@ -18,11 +18,13 @@ import {
 } from "@/components/icons";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
+import { requireStaff } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "لوحة التحكم" };
 
 export default async function AdminDashboard() {
+  await requireStaff("dashboard");
   const day = currentBusinessDay();
   const [orders, counts] = await Promise.all([
     getOrdersBetween(day.start, day.end),

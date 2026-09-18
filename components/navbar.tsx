@@ -131,13 +131,13 @@ export function Navbar({ user }: { user: SessionUser | null }) {
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate text-sm font-semibold">{user.name}</p>
                       <p className="mt-0.5 text-xs text-muted">
-                        {user.role === "ADMIN" ? "مدير" : "عضو"}
+                        {user.role === "ADMIN" ? "مدير" : user.role === "AGENT" ? "مندوب" : "عضو"}
                       </p>
                     </div>
                     <div className="p-1.5">
-                      {user.role === "ADMIN" && (
+                      {user.role !== "USER" && (
                         <Link
-                          href="/admin/dashboard"
+                          href="/admin"
                           className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-surface-2"
                         >
                           <LayersIcon width={17} height={17} /> لوحة التحكم

@@ -14,7 +14,7 @@ export default async function AuthLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
-  if (session) redirect(session.role === "ADMIN" ? "/admin/dashboard" : "/");
+  if (session) redirect(session.role === "USER" ? "/" : "/admin");
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">

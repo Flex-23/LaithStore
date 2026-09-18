@@ -21,8 +21,8 @@ export function AdminLoginForm() {
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-foreground text-background">
             <ShieldIcon width={26} height={26} />
           </span>
-          <h1 className="mt-4 text-3xl">دخول المدير</h1>
-          <p className="mt-1 text-sm text-muted">لوحة إدارة {APP_NAME}</p>
+          <h1 className="mt-4 text-3xl">دخول الإدارة</h1>
+          <p className="mt-1 text-sm text-muted">المدير والمندوبون · لوحة إدارة {APP_NAME}</p>
         </div>
 
         <div className="card p-6 sm:p-8">

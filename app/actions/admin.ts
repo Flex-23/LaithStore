@@ -4,9 +4,10 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { adminOnly, staffWith } from "@/lib/permissions";
 import { saveImageUpload, UploadError } from "@/lib/upload";
 import {
+  assignAgentSchema,
   categorySchema,
   fieldErrors,
   orderStatusSchema,
@@ -20,10 +21,11 @@ export type AdminState = {
 };
 
 const DB_ERROR = "خطأ في قاعدة البيانات. تأكد من تشغيل MySQL وتطبيق المخطط.";
+const UNAUTHORIZED = "غير مصرّح لك بهذا الإجراء";
 
+/** Catalog mutations need the "products" permission (admins always have it). */
 async function assertAdmin(): Promise<boolean> {
-  const session = await getSession();
-  return session?.role === "ADMIN";
+  return (await staffWith("products")) !== null;
 }
 
 function refreshCatalog() {
@@ -75,7 +77,7 @@ export async function createCategoryAction(
   _prev: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
-  if (!(await assertAdmin())) return { error: "غير مصرّح" };
+  if (!(await assertAdmin())) return { error: UNAUTHORIZED };
 
   const parsed = await readCategory(formData);
   if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
@@ -96,7 +98,7 @@ export async function updateCategoryAction(
   _prev: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
-  if (!(await assertAdmin())) return { error: "غير مصرّح" };
+  if (!(await assertAdmin())) return { error: UNAUTHORIZED };
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "معرّف الفئة مفقود" };
 
@@ -157,7 +159,7 @@ export async function createProductAction(
   _prev: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
-  if (!(await assertAdmin())) return { error: "غير مصرّح" };
+  if (!(await assertAdmin())) return { error: UNAUTHORIZED };
 
   const parsed = await readProduct(formData);
   if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
@@ -187,7 +189,7 @@ export async function updateProductAction(
   _prev: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
-  if (!(await assertAdmin())) return { error: "غير مصرّح" };
+  if (!(await assertAdmin())) return { error: UNAUTHORIZED };
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "معرّف المنتج مفقود" };
 
@@ -251,24 +253,97 @@ export async function saveCategoryAction(
 
 // --- Orders -----------------------------------------------------------------
 
+function refreshOrders() {
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin/agents/reports");
+}
+
+/**
+ * Changes an order's status. When an agent does this on an unassigned order,
+ * the order becomes theirs (commission % snapshotted at that moment).
+ */
 export async function updateOrderStatusAction(formData: FormData) {
-  if (!(await assertAdmin())) redirect("/admin/login");
+  const staff = await staffWith("orders");
+  if (!staff) redirect("/admin/login");
   const parsed = orderStatusSchema.safeParse({
     orderId: formData.get("orderId"),
     status: formData.get("status"),
   });
   if (parsed.success) {
     try {
+      const order = await prisma.order.findUnique({
+        where: { id: parsed.data.orderId },
+        select: { agentId: true },
+      });
+      const claim = staff.role === "AGENT" && order && !order.agentId;
       await prisma.order.update({
         where: { id: parsed.data.orderId },
-        data: { status: parsed.data.status },
+        data: {
+          status: parsed.data.status,
+          ...(claim
+            ? { agentId: staff.id, agentCommissionPercent: staff.commissionPercent }
+            : {}),
+        },
       });
     } catch {
       /* ignore */
     }
-    revalidatePath("/admin/orders");
-    revalidatePath("/admin/dashboard");
-    revalidatePath("/admin/reports");
+    refreshOrders();
+  }
+  redirect("/admin/orders");
+}
+
+/** Agent takes an unassigned order without changing its status. */
+export async function claimOrderAction(formData: FormData) {
+  const staff = await staffWith("orders");
+  if (!staff) redirect("/admin/login");
+  const orderId = String(formData.get("orderId") ?? "");
+  if (orderId && staff.role === "AGENT") {
+    try {
+      await prisma.order.updateMany({
+        where: { id: orderId, agentId: null },
+        data: { agentId: staff.id, agentCommissionPercent: staff.commissionPercent },
+      });
+    } catch {
+      /* ignore */
+    }
+    refreshOrders();
+  }
+  redirect("/admin/orders");
+}
+
+/** Admin assigns (or clears) the agent on an order. */
+export async function assignOrderAgentAction(formData: FormData) {
+  if (!(await adminOnly())) redirect("/admin/login");
+  const parsed = assignAgentSchema.safeParse({
+    orderId: formData.get("orderId"),
+    agentId: formData.get("agentId"),
+  });
+  if (parsed.success) {
+    try {
+      if (!parsed.data.agentId) {
+        await prisma.order.update({
+          where: { id: parsed.data.orderId },
+          data: { agentId: null, agentCommissionPercent: null },
+        });
+      } else {
+        const agent = await prisma.user.findFirst({
+          where: { id: parsed.data.agentId, role: "AGENT" },
+          select: { id: true, commissionPercent: true },
+        });
+        if (agent) {
+          await prisma.order.update({
+            where: { id: parsed.data.orderId },
+            data: { agentId: agent.id, agentCommissionPercent: agent.commissionPercent },
+          });
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    refreshOrders();
   }
   redirect("/admin/orders");
 }

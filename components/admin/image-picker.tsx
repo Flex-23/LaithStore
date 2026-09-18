@@ -14,13 +14,17 @@ type Mode = "url" | "upload";
  */
 export function ImagePicker({
   label = "الصورة",
+  fieldName = "image",
   defaultValue,
   error,
 }: {
   label?: string;
+  /** Text field name; the file input is `${fieldName}File`. */
+  fieldName?: string;
   defaultValue?: string;
   error?: string;
 }) {
+  const fileField = fieldName === "image" ? "imageFile" : `${fieldName}File`;
   const isLocal = !!defaultValue?.startsWith("/uploads/");
   const [mode, setMode] = useState<Mode>(isLocal ? "upload" : "url");
   const [preview, setPreview] = useState<string | null>(null);
@@ -68,7 +72,7 @@ export function ImagePicker({
 
       {mode === "url" ? (
         <input
-          name="image"
+          name={fieldName}
           type="url"
           className="field-input"
           placeholder="https://…"
@@ -79,7 +83,7 @@ export function ImagePicker({
       ) : (
         <>
           {/* Keep the existing image when editing without choosing a new file. */}
-          <input type="hidden" name="image" value={isLocal ? defaultValue : ""} />
+          <input type="hidden" name={fieldName} value={isLocal ? defaultValue : ""} />
           <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border-strong px-4 py-3 text-sm transition-colors hover:border-brand">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
               <UploadIcon width={17} height={17} />
@@ -94,7 +98,7 @@ export function ImagePicker({
             </span>
             <input
               type="file"
-              name="imageFile"
+              name={fileField}
               accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
               className="sr-only"
               onChange={(e) => onFile(e.target.files?.[0] ?? null)}

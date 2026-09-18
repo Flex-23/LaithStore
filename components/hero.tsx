@@ -3,11 +3,40 @@ import { SmartImage } from "./smart-image";
 import { ArrowRightIcon, ShieldIcon, SparkleIcon, TruckIcon } from "./icons";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/constants";
 import { formatPrice } from "@/lib/format";
+import type { HomeContentData } from "@/lib/home-content";
 
-const img = (id: string) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=80`;
+/**
+ * Renders the headline with line breaks preserved and the first occurrence of
+ * `highlight` coloured in the brand tone.
+ */
+function Headline({ title, highlight }: { title: string; highlight: string }) {
+  const lines = title.split(/\r?\n/);
+  // Only the first line containing the highlight gets it coloured.
+  const hitLine = highlight ? lines.findIndex((l) => l.includes(highlight)) : -1;
+  return (
+    <>
+      {lines.map((line, i) => {
+        const at = i === hitLine ? line.indexOf(highlight) : -1;
+        return (
+          <span key={i}>
+            {at === -1 ? (
+              line
+            ) : (
+              <>
+                {line.slice(0, at)}
+                <span className="text-brand">{highlight}</span>
+                {line.slice(at + highlight.length)}
+              </>
+            )}
+            {i < lines.length - 1 && <br />}
+          </span>
+        );
+      })}
+    </>
+  );
+}
 
-export function Hero() {
+export function Hero({ content }: { content: HomeContentData }) {
   return (
     <section className="relative overflow-hidden">
       <div className="grid-hero pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_top,black,transparent_75%)]" />
@@ -18,29 +47,26 @@ export function Hero() {
         {/* Copy */}
         <div className="max-w-xl">
           <span className="eyebrow animate-fade-up">
-            <SparkleIcon width={15} height={15} /> الموسم الجديد · 2026
+            <SparkleIcon width={15} height={15} /> {content.heroEyebrow}
           </span>
           <h1
             className="animate-fade-up mt-5 text-balance text-5xl leading-[1.15] sm:text-6xl lg:text-7xl"
             style={{ animationDelay: "80ms" }}
           >
-            أشياء يومية،
-            <br />
-            <span className="text-brand">بعناية</span> استثنائية.
+            <Headline title={content.heroTitle} highlight={content.heroHighlight} />
           </h1>
           <p
             className="animate-fade-up mt-6 max-w-md text-lg leading-relaxed text-muted"
             style={{ animationDelay: "160ms" }}
           >
-            تشكيلة مختارة من الإلكترونيات والأزياء ومستلزمات المنزل — اخترناها
-            لجودة صنعها، وصُممت لتدوم.
+            {content.heroSubtitle}
           </p>
           <div
             className="animate-fade-up mt-8 flex flex-wrap items-center gap-3"
             style={{ animationDelay: "240ms" }}
           >
             <Link href="/products" className="btn btn-brand">
-              تسوّق التشكيلة <ArrowRightIcon width={18} height={18} />
+              {content.heroCta} <ArrowRightIcon width={18} height={18} />
             </Link>
             <Link href="/register" className="btn btn-outline">
               إنشاء حساب
@@ -66,8 +92,8 @@ export function Hero() {
         <div className="relative h-[380px] sm:h-[460px] lg:h-[540px]">
           <div className="animate-fade-up absolute inset-e-0 top-0 h-[74%] w-[62%] overflow-hidden rounded-[2rem] border border-border shadow-2xl">
             <SmartImage
-              src={img("1491553895911-0055eca6402d")}
-              alt="أحذية رياضية مميزة"
+              src={content.heroImage1}
+              alt="صورة رئيسية"
               sizes="40vw"
               priority
               className="h-full w-full"
@@ -78,8 +104,8 @@ export function Hero() {
             style={{ animationDelay: "160ms" }}
           >
             <SmartImage
-              src={img("1523275335684-37898b6baf30")}
-              alt="ساعة ذكية مميزة"
+              src={content.heroImage2}
+              alt="صورة ثانوية"
               sizes="30vw"
               className="h-full w-full"
             />

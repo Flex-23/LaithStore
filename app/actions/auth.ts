@@ -100,7 +100,7 @@ export async function logoutAction() {
 
 // --- Admin ------------------------------------------------------------------
 
-/** Admin sign-in. Customer accounts are rejected here. */
+/** Management sign-in for the admin and agents. Customer accounts are rejected. */
 export async function adminLoginAction(
   _prev: AuthState,
   formData: FormData,
@@ -121,12 +121,16 @@ export async function adminLoginAction(
   if (!user || !(await verifyPassword(parsed.data.password, user.password))) {
     return { error: "رقم الهاتف أو كلمة المرور غير صحيحة" };
   }
-  if (user.role !== "ADMIN") {
-    return { error: "هذا الحساب ليس حساب مدير." };
+  if (user.role === "USER") {
+    return { error: "هذا الحساب ليس حساب إدارة." };
+  }
+  if (!user.isActive) {
+    return { error: "هذا الحساب موقوف. تواصل مع المدير." };
   }
 
   await createSession({ id: user.id, name: user.name, role: user.role });
-  redirect("/admin/dashboard");
+  // /admin picks the first page this account is allowed to open.
+  redirect("/admin");
 }
 
 export async function adminLogoutAction() {

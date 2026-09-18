@@ -1,5 +1,6 @@
 import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_HOME_CONTENT, HOME_CONTENT_ID } from "../lib/home-content.ts";
 
 const prisma = new PrismaClient();
 
@@ -282,6 +283,31 @@ async function main() {
     },
   });
 
+  // Demo agent (المندوب) — AG-0001 with orders + dashboard access, 5% commission.
+  const agentPassword = await bcrypt.hash("agent1234", 10);
+  await prisma.user.upsert({
+    where: { phone: "07722222222" },
+    update: {},
+    create: {
+      name: "علي حسن",
+      phone: "07722222222",
+      governorate: "بغداد",
+      password: agentPassword,
+      role: Role.AGENT,
+      agentNumber: 1,
+      commissionPercent: 5,
+      canManageOrders: true,
+      canViewDashboard: true,
+    },
+  });
+
+  // Home-page copy: create once with the defaults; never overwrite admin edits.
+  await prisma.homeContent.upsert({
+    where: { id: HOME_CONTENT_ID },
+    update: {},
+    create: { id: HOME_CONTENT_ID, ...DEFAULT_HOME_CONTENT },
+  });
+
   // Replace the whole catalog (and the demo orders that reference it) so
   // re-seeding never leaves stale English/USD rows behind.
   await prisma.orderItem.deleteMany();
@@ -312,6 +338,7 @@ async function main() {
 
   console.log("✅ Seed complete.");
   console.log("   Admin login  → phone: 07700000000 · password: admin1234");
+  console.log("   Agent login  → phone: 07722222222 · password: agent1234");
   console.log("   Customer     → phone: 07711111111 · password: user1234");
 }
 
