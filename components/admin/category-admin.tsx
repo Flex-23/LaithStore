@@ -138,7 +138,7 @@ export function CategoryAdmin({ categories }: { categories: Category[] }) {
                     <form action={deleteCategoryAction}>
                       <input type="hidden" name="id" value={c.id} />
                       <button
-                        className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
+                        className="btn-icon btn-icon-danger"
                         aria-label={`حذف ${c.name}`}
                       >
                         <TrashIcon width={17} height={17} />

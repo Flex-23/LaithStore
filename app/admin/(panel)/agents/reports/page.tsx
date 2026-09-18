@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getAgentReports, getArchiveMonths, sumAgentReports } from "@/lib/data";
 import { requireAdminStaff } from "@/lib/permissions";
-import { agentCode } from "@/lib/agent";
 import { resolveMonthParam } from "@/lib/business-day";
 import { PageHeader } from "@/components/admin/ui";
 import { AgentStats } from "@/components/admin/agent-stats";
@@ -115,10 +114,7 @@ function ReportRow({
 }) {
   return (
     <tr className={`hover:bg-surface-2/60 ${r.agent.isActive ? "" : "opacity-60"}`}>
-      <td className="px-5 py-3">
-        <p className="whitespace-nowrap font-medium">{r.agent.name}</p>
-        <p className="ltr text-start font-mono text-xs text-muted">{agentCode(r.agent.agentNumber)}</p>
-      </td>
+      <td className="whitespace-nowrap px-5 py-3 font-medium">{r.agent.name}</td>
       <td className="whitespace-nowrap px-5 py-3">{formatPrice(r.agent.commissionPerOrder)}</td>
       <td className="px-5 py-3 font-medium">{formatNumber(r.totalOrders)}</td>
       <td className="px-5 py-3 text-muted">{formatNumber(r.pending)}</td>

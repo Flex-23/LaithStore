@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SmartImage } from "@/components/smart-image";
 import { Field, TextareaField } from "@/components/field";
+import { MoneyInput } from "@/components/money-input";
 import { ImagePicker } from "@/components/admin/image-picker";
 import { useToast } from "@/components/providers/toast";
 import { CloseIcon, TrashIcon } from "@/components/icons";
@@ -135,13 +136,10 @@ export function ProductAdmin({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field
+                <MoneyInput
                   label={`السعر (${CURRENCY})`}
                   name="price"
-                  type="number"
-                  step="1"
-                  min="0"
-                  placeholder="0"
+                  placeholder="25,000"
                   defaultValue={editing?.price}
                   error={state.fieldErrors?.price}
                 />
@@ -177,20 +175,17 @@ export function ProductAdmin({
                   name="isDiscounted"
                   checked={discountOn}
                   onChange={(e) => setDiscountOn(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--brand)]"
+                  className="h-4 w-4 accent-brand"
                 />
                 تفعيل الخصم
               </label>
 
               {discountOn && (
-                <Field
+                <MoneyInput
                   label={`السعر بعد الخصم (${CURRENCY})`}
                   name="discountedPrice"
-                  type="number"
-                  step="1"
-                  min="0"
-                  placeholder="0"
-                  defaultValue={editing?.discountedPrice ?? undefined}
+                  placeholder="20,000"
+                  defaultValue={editing?.discountedPrice}
                   error={state.fieldErrors?.discountedPrice}
                 />
               )}
@@ -294,7 +289,7 @@ export function ProductAdmin({
                         <form action={deleteProductAction}>
                           <input type="hidden" name="id" value={p.id} />
                           <button
-                            className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
+                            className="btn-icon btn-icon-danger"
                             aria-label={`حذف ${p.name}`}
                           >
                             <TrashIcon width={17} height={17} />

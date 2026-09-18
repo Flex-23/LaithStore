@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field, TextareaField } from "@/components/field";
+import { MoneyInput } from "@/components/money-input";
 import { useToast } from "@/components/providers/toast";
 import { TrashIcon } from "@/components/icons";
 import { addExpenseAction, deleteExpenseAction } from "@/app/actions/expenses";
@@ -54,13 +55,10 @@ export function ExpenseAdmin({
         <div className="card p-6">
           <h2 className="font-serif text-xl">تسجيل صرف</h2>
           <form key={formVersion} action={submit} className="mt-5 space-y-4">
-            <Field
+            <MoneyInput
               label={`المبلغ (${CURRENCY})`}
               name="amount"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="0"
+              placeholder="50,000"
               error={state.fieldErrors?.amount}
             />
 
@@ -168,7 +166,7 @@ export function ExpenseAdmin({
                       <form action={deleteExpenseAction} className="flex justify-end">
                         <input type="hidden" name="id" value={e.id} />
                         <button
-                          className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
+                          className="btn-icon btn-icon-danger"
                           aria-label="حذف"
                         >
                           <TrashIcon width={17} height={17} />

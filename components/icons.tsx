@@ -232,6 +232,40 @@ export function WalletIcon(p: IconProps) {
   );
 }
 
+export function EyeIcon(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EditIcon(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path d="m13.5 6.5 3 3" />
+    </svg>
+  );
+}
+
+export function PauseIcon(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M8 5v14M16 5v14" />
+    </svg>
+  );
+}
+
+export function PlayIcon(p: IconProps) {
+  return (
+    <svg {...base} fill="currentColor" stroke="none" {...p}>
+      <path d="M7 4.5v15l12-7.5-12-7.5Z" />
+    </svg>
+  );
+}
+
 export function UploadIcon(p: IconProps) {
   return (
     <svg {...base} {...p}>

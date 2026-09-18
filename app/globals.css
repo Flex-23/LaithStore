@@ -238,6 +238,32 @@
 
   .btn-sm { padding: 0.55rem 1rem; font-size: 0.85rem; }
 
+  /* Round icon-only action (edit / pause / delete …). Pair with `title`. */
+  .btn-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease,
+      transform 0.18s ease;
+  }
+  .btn-icon:hover:not(:disabled) {
+    color: var(--foreground);
+    border-color: var(--border-strong);
+    background: var(--surface-2);
+    transform: translateY(-1px);
+  }
+  .btn-icon-danger:hover:not(:disabled) {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+  }
+
   .card {
     background: var(--surface);
     border: 1px solid var(--border);

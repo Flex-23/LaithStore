@@ -68,7 +68,7 @@ export function CartView() {
                   </div>
                   <button
                     onClick={() => removeItem(item.id)}
-                    className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
+                    className="btn-icon btn-icon-danger"
                     aria-label={`إزالة ${item.name}`}
                   >
                     <TrashIcon width={17} height={17} />

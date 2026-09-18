@@ -4,8 +4,16 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Field, SelectField } from "@/components/field";
+import { MoneyInput } from "@/components/money-input";
 import { useToast } from "@/components/providers/toast";
-import { CloseIcon, TrashIcon } from "@/components/icons";
+import {
+  CloseIcon,
+  EditIcon,
+  EyeIcon,
+  PauseIcon,
+  PlayIcon,
+  TrashIcon,
+} from "@/components/icons";
 import {
   saveAgentAction,
   toggleAgentActiveAction,
@@ -117,13 +125,10 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                 autoComplete="new-password"
                 error={state.fieldErrors?.password}
               />
-              <Field
+              <MoneyInput
                 label={`الأجر لكل طلب (${CURRENCY})`}
                 name="commissionPerOrder"
-                type="number"
-                min="0"
-                step="250"
-                placeholder="2000"
+                placeholder="2,000"
                 defaultValue={editing?.commissionPerOrder ?? 0}
                 hint="يُحتسب لكل طلب يُخرجه (تم الشحن أو التوصيل)"
                 error={state.fieldErrors?.commissionPerOrder}
@@ -180,23 +185,25 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-sm">
+            <table className="w-full text-sm">
+              {/* The actions column shrinks to one row of buttons (w-px = min
+                  content); the four data columns share the remaining width equally. */}
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
-                  <th className="px-4 py-3 font-medium">الاسم</th>
-                  <th className="px-4 py-3 font-medium">الرقم</th>
-                  <th className="px-4 py-3 font-medium">الأجر لكل طلب</th>
-                  <th className="px-4 py-3 font-medium">الحالة</th>
-                  <th className="px-4 py-3 text-end font-medium">الإجراءات</th>
+                  <th className="w-1/5 px-4 py-3 font-medium">الاسم</th>
+                  <th className="w-1/5 px-4 py-3 font-medium">الرقم</th>
+                  <th className="w-1/5 px-4 py-3 font-medium">الأجر لكل طلب</th>
+                  <th className="w-1/5 px-4 py-3 font-medium">الحالة</th>
+                  <th className="w-px whitespace-nowrap px-4 py-3 text-end font-medium">الإجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {agents.map((a) => (
                   <tr key={a.id} className={`hover:bg-surface-2/60 ${a.isActive ? "" : "opacity-60"}`}>
                     <td className="truncate px-4 py-3 font-medium">{a.name}</td>
-                    <td className="ltr px-4 py-3 text-start font-mono text-xs">
-                      {agentCode(a.agentNumber)}
-                    </td>
+                    {/* `font-mono` cells are LTR + end-aligned globally, so the code
+                        sits flush with its RTL header. */}
+                    <td className="px-4 py-3 font-mono text-xs">{agentCode(a.agentNumber)}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium">
                       {formatPrice(a.commissionPerOrder)}
                     </td>
@@ -209,28 +216,47 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                         {a.isActive ? "نشط" : "موقوف"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-end gap-1.5">
-                        <Link href={`/admin/agents/${a.id}`} className="btn btn-primary btn-sm">
-                          تفاصيل
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          href={`/admin/agents/${a.id}`}
+                          className="btn btn-primary btn-sm"
+                          title="عرض التفاصيل"
+                        >
+                          <EyeIcon width={15} height={15} /> تفاصيل
                         </Link>
-                        <button onClick={() => startEdit(a)} className="btn btn-outline btn-sm">
-                          تعديل
+                        <button
+                          type="button"
+                          onClick={() => startEdit(a)}
+                          className="btn-icon"
+                          title="تعديل"
+                          aria-label={`تعديل ${a.name}`}
+                        >
+                          <EditIcon width={16} height={16} />
                         </button>
                         <form action={toggleAgentActiveAction}>
                           <input type="hidden" name="id" value={a.id} />
                           <input type="hidden" name="active" value={a.isActive ? "0" : "1"} />
-                          <button className="btn btn-ghost btn-sm">
-                            {a.isActive ? "إيقاف" : "تفعيل"}
+                          <button
+                            className="btn-icon"
+                            title={a.isActive ? "إيقاف الحساب" : "تفعيل الحساب"}
+                            aria-label={a.isActive ? `إيقاف ${a.name}` : `تفعيل ${a.name}`}
+                          >
+                            {a.isActive ? (
+                              <PauseIcon width={16} height={16} />
+                            ) : (
+                              <PlayIcon width={14} height={14} />
+                            )}
                           </button>
                         </form>
                         <form action={deleteAgentAction}>
                           <input type="hidden" name="id" value={a.id} />
                           <button
-                            className="btn-ghost grid h-9 w-9 place-items-center rounded-full text-muted hover:text-danger"
+                            className="btn-icon btn-icon-danger"
+                            title="حذف"
                             aria-label={`حذف ${a.name}`}
                           >
-                            <TrashIcon width={17} height={17} />
+                            <TrashIcon width={16} height={16} />
                           </button>
                         </form>
                       </div>
