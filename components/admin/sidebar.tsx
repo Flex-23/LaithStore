@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { usePathname } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { adminLogoutAction } from "@/app/actions/auth";
-import { APP_NAME } from "@/lib/constants";
 import { agentCode, type Permission, type Permissions } from "@/lib/agent";
 import {
   ArrowRightIcon,
@@ -60,14 +60,9 @@ export function AdminSidebar({
   return (
     <aside className="flex flex-col border-b border-border bg-surface lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-e">
       <div className="flex items-center justify-between p-4 lg:p-6">
-        <Link href="/admin" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-foreground text-background font-serif text-lg">
-            ل
-          </span>
-          <div className="leading-tight">
-            <p className="font-serif text-lg">{APP_NAME}</p>
-            <p className="text-[11px] text-muted">الإدارة</p>
-          </div>
+        <Link href="/admin" className="flex items-center gap-2" aria-label="لوحة الإدارة">
+          <Logo size="sm" />
+          <span className="badge">الإدارة</span>
         </Link>
         <Link
           href="/"
@@ -90,7 +85,7 @@ export function AdminSidebar({
               href={href}
               className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-foreground text-background"
+                  ? "bg-brand text-white shadow-[0_8px_20px_-10px_var(--ring)]"
                   : "text-muted hover:bg-surface-2 hover:text-foreground"
               }`}
             >

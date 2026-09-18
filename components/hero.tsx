@@ -24,7 +24,7 @@ function Headline({ title, highlight }: { title: string; highlight: string }) {
             ) : (
               <>
                 {line.slice(0, at)}
-                <span className="text-brand">{highlight}</span>
+                <span className="text-accent">{highlight}</span>
                 {line.slice(at + highlight.length)}
               </>
             )}

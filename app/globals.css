@@ -3,37 +3,49 @@
 /* Class-based dark mode (toggled on <html class="dark">). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ---------------------------------------------------------------- Tokens */
+/* ---------------------------------------------------------------- Tokens
+   Brand: teal #2A99A3 (text, lines, buttons) + pink #F28DA0 (logo dots,
+   sale badges, highlights). Light mode is teal-on-white; dark mode ("night")
+   lifts the teal/pink a step lighter so they stay readable on deep teal-black. */
 :root {
-  --background: #faf8f5;
+  --background: #f6fbfb;
   --surface: #ffffff;
-  --surface-2: #f4f1ea;
-  --foreground: #1a160f;
-  --muted: #756c5f;
-  --border: #e8e2d7;
-  --border-strong: #d8d0c2;
-  --brand: #a97a3c;
-  --brand-strong: #8c6330;
-  --brand-soft: #f3ebdc;
-  --danger: #b23b3b;
-  --success: #2f7d55;
-  --ring: rgba(169, 122, 60, 0.45);
+  --surface-2: #eaf5f6;
+  /* Body copy: a deep teal that reads comfortably; headings use --heading. */
+  --foreground: #163f44;
+  --heading: #2a99a3;
+  --muted: #5c8489;
+  --border: #d3e6e8;
+  --border-strong: #b3d3d7;
+  --brand: #2a99a3;
+  --brand-strong: #1f7d86;
+  --brand-soft: #e1f2f4;
+  --accent: #f28da0;
+  --accent-strong: #e46b84;
+  --accent-soft: #fde8ed;
+  --danger: #c4485a;
+  --success: #2f8f6a;
+  --ring: rgba(42, 153, 163, 0.4);
 }
 
 .dark {
-  --background: #0d0c0a;
-  --surface: #16140f;
-  --surface-2: #1f1c15;
-  --foreground: #f3efe6;
-  --muted: #a9a08f;
-  --border: #2a2620;
-  --border-strong: #38332a;
-  --brand: #d2a75f;
-  --brand-strong: #e0bb7c;
-  --brand-soft: #221c12;
-  --danger: #e07a7a;
-  --success: #5cbf8c;
-  --ring: rgba(210, 167, 95, 0.45);
+  --background: #08181b;
+  --surface: #0e2124;
+  --surface-2: #142c30;
+  --foreground: #e3f2f3;
+  --heading: #5cc3cb;
+  --muted: #8fb4b8;
+  --border: #1c363a;
+  --border-strong: #2a4c51;
+  --brand: #4dbcc5;
+  --brand-strong: #7fd3da;
+  --brand-soft: #12363b;
+  --accent: #f59fb0;
+  --accent-strong: #ffb8c6;
+  --accent-soft: #3b1f27;
+  --danger: #ef8a99;
+  --success: #62c79b;
+  --ring: rgba(77, 188, 197, 0.45);
 }
 
 /* -------------------------------------------------------------- Theme map */
@@ -48,6 +60,10 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-heading: var(--heading);
   --color-danger: var(--danger);
   --color-success: var(--success);
 
@@ -131,7 +147,8 @@
   }
   h1, h2, h3, h4 {
     font-family: var(--font-serif);
-    font-weight: 600;
+    font-weight: 700;
+    color: var(--heading);
     /* Arabic is a connected script: never track letters. */
     letter-spacing: 0;
   }
@@ -202,19 +219,23 @@
   .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
   .btn-primary {
-    background: var(--foreground);
-    color: var(--background);
-    box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.5);
-  }
-  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
-
-  .btn-brand {
     background: var(--brand);
     color: #fff;
-    box-shadow: 0 12px 30px -12px var(--ring);
+    box-shadow: 0 10px 30px -12px var(--ring);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--brand-strong);
+    transform: translateY(-1px);
+  }
+
+  /* Accent CTA (pink) — the storefront's "buy" energy. */
+  .btn-brand {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--accent) 60%, transparent);
   }
   .btn-brand:hover:not(:disabled) {
-    background: var(--brand-strong);
+    background: var(--accent-strong);
     transform: translateY(-1px);
   }
 
@@ -311,10 +332,20 @@
     border: 1px solid var(--border);
   }
   .badge-sale {
-    background: var(--brand);
+    background: var(--accent);
     color: #fff;
     border-color: transparent;
     direction: ltr;
+  }
+
+  /* Brand wordmark: teal with a soft pink glow behind the letters. */
+  .wordmark {
+    font-family: var(--font-serif);
+    font-weight: 900;
+    color: var(--brand);
+    line-height: 1;
+    letter-spacing: 0;
+    text-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 35%, transparent);
   }
 
   .glass {

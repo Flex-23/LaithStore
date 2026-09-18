@@ -161,7 +161,7 @@ export function TrustMarquee() {
             className="flex items-center gap-3 text-sm font-medium text-muted"
           >
             {t}
-            <span className="text-brand">✦</span>
+            <span className="text-accent">✦</span>
           </span>
         ))}
       </div>

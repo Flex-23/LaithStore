@@ -1,7 +1,7 @@
 // Shared, framework-agnostic constants.
 
-export const APP_NAME = "لوميير";
-export const APP_TAGLINE = "منتجات مختارة بعناية، تصلك بكل اهتمام";
+export const APP_NAME = "تقنيتي";
+export const APP_TAGLINE = "التقنية الحديثة بين يديك";
 
 // Currency label (Iraqi dinar). Digits are always rendered in Latin numerals.
 export const CURRENCY = "د.ع";

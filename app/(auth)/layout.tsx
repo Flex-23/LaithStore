@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SmartImage } from "@/components/smart-image";
 import { ArrowRightIcon } from "@/components/icons";
-import { APP_NAME } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +21,7 @@ export default async function AuthLayout({
       {/* Form side */}
       <div className="flex flex-col px-6 py-8 sm:px-10">
         <header className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-foreground text-background font-serif text-lg">
-              ل
-            </span>
-            <span className="font-serif text-xl">{APP_NAME}</span>
-          </Link>
+          <Logo href="/" size="sm" />
           <Link
             href="/"
             className="link-underline inline-flex items-center gap-1.5 text-sm text-muted"

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { adminLoginAction, type AuthState } from "@/app/actions/auth";
 import { Field } from "@/components/field";
-import { ShieldIcon } from "@/components/icons";
+import { Logo } from "@/components/logo";
 import { APP_NAME } from "@/lib/constants";
 
 export function AdminLoginForm() {
@@ -18,9 +18,7 @@ export function AdminLoginForm() {
       <div className="grid-hero pointer-events-none fixed inset-0 opacity-40" />
       <div className="animate-fade-up relative w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-foreground text-background">
-            <ShieldIcon width={26} height={26} />
-          </span>
+          <Logo size="lg" />
           <h1 className="mt-4 text-3xl">دخول الإدارة</h1>
           <p className="mt-1 text-sm text-muted">المدير والمندوبون · لوحة إدارة {APP_NAME}</p>
         </div>

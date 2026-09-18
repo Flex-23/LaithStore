@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { SessionUser } from "@/lib/auth";
 import { logoutAction } from "@/app/actions/auth";
-import { APP_NAME } from "@/lib/constants";
 import { useCart } from "./providers/cart-context";
 import { ThemeToggle } from "./theme-toggle";
 import {
@@ -63,12 +63,7 @@ export function Navbar({ user }: { user: SessionUser | null }) {
       <nav className="container-page flex h-16 items-center justify-between gap-4 lg:h-20">
         {/* Start: logo + links */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-foreground text-background font-serif text-lg">
-              ل
-            </span>
-            <span className="font-serif text-xl">{APP_NAME}</span>
-          </Link>
+          <Logo href="/" size="sm" />
           <div className="hidden items-center gap-6 md:flex">
             {LINKS.map((l) => (
               <Link
@@ -99,7 +94,7 @@ export function Navbar({ user }: { user: SessionUser | null }) {
                 >
                   <CartIcon width={19} height={19} />
                   {count > 0 && (
-                    <span className="animate-scale-in absolute -inset-e-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-[11px] font-semibold text-white">
+                    <span className="animate-scale-in absolute -inset-e-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold text-white">
                       {count}
                     </span>
                   )}

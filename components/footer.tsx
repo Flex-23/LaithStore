@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { APP_NAME } from "@/lib/constants";
 
 const columns = [
@@ -33,12 +34,7 @@ export function Footer() {
       <div className="container-page py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-foreground text-background font-serif text-lg">
-                ل
-              </span>
-              <span className="font-serif text-xl">{APP_NAME}</span>
-            </Link>
+            <Logo href="/" size="md" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
               منتجات مختارة بعناية لحياة أجمل — مصممة لتدوم، وتصلك بكل اهتمام.
             </p>
