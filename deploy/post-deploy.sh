@@ -14,4 +14,4 @@ for name in $(grep -rhoE "@prisma/client-[0-9a-f]+" .next/server .next/build 2>/
   ln -sfn "$PWD/node_modules/@prisma/client" ".next/node_modules/$name"
 done
 
-echo "Ready. Restart the app (pm2 restart store / systemctl restart ...) or run: npm start"
+echo "Ready. Restart the app (pm2 restart my-store / systemctl restart ...) or run: npm start"
