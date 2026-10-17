@@ -15,7 +15,7 @@ cd ~/my-store
 rm -rf .next
 tar -xzf deploy/store-deploy.tar.gz
 bash deploy/post-deploy.sh
-pm2 restart store          # أو systemctl restart ... أو npm start
+pm2 restart my-store          # أو systemctl restart ... أو npm start
 curl -s localhost:3000/api/health
 ```
 

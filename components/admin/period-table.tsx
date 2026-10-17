@@ -35,6 +35,7 @@ export function PeriodTable({
             <th className="px-6 py-3 font-medium">الطلبات</th>
             <th className="px-6 py-3 font-medium">القطع</th>
             <th className="px-6 py-3 font-medium">الإيرادات</th>
+            <th className="px-6 py-3 font-medium">صافي الربح</th>
             <th className="px-6 py-3 font-medium">مرفوض</th>
             <th className="px-6 py-3 font-medium"></th>
           </tr>
@@ -60,6 +61,9 @@ export function PeriodTable({
                 <td className="px-6 py-3">{formatNumber(row.summary.itemsSold)}</td>
                 <td className={`whitespace-nowrap px-6 py-3 ${empty ? "" : "font-semibold"}`}>
                   {formatPrice(row.summary.revenue)}
+                </td>
+                <td className={`whitespace-nowrap px-6 py-3 ${empty ? "" : "font-semibold text-success"}`}>
+                  {formatPrice(row.summary.netProfit)}
                 </td>
                 <td className="px-6 py-3">
                   {row.summary.cancelledCount > 0 ? (

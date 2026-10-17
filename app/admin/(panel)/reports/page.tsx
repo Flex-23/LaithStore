@@ -26,7 +26,8 @@ import { requireAccountsStaff } from "@/lib/permissions";
 import { PageHeader, StatCard, BarRow } from "@/components/admin/ui";
 import { PeriodTable, type PeriodRow } from "@/components/admin/period-table";
 import { OrdersTable } from "@/components/admin/orders-table";
-import { ChartIcon, PackageIcon, TagIcon, TruckIcon, WalletIcon } from "@/components/icons";
+import { ProfitBreakdown } from "@/components/admin/profit-breakdown";
+import { ChartIcon, PackageIcon, TagIcon, TruckIcon } from "@/components/icons";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
 
@@ -150,13 +151,14 @@ export default async function AdminReportsPage({
       <p className="mb-3 text-sm text-muted">
         {periodNoun} الحالي: <span className="font-medium text-foreground">{rows[0].label}</span>
       </p>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
+      <ProfitBreakdown summary={period} title={`صافي الربح — ${rows[0].label}`} />
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard
           label={`إيرادات ${periodNoun}`}
           value={formatPrice(period.revenue)}
           sub={`${formatNumber(period.orderCount)} طلب · ${formatNumber(period.cancelledCount)} مرفوض`}
-          icon={<ChartIcon width={18} height={18} className="text-background" />}
-          accent
+          icon={<ChartIcon width={18} height={18} />}
         />
         <StatCard
           label="متوسط قيمة الطلب"
@@ -176,14 +178,6 @@ export default async function AdminReportsPage({
           sub={`${formatNumber(lowStock.length)} على وشك النفاد`}
           icon={<TagIcon width={18} height={18} />}
         />
-        <div className="col-span-2 xl:col-span-1">
-          <StatCard
-            label={`صافي ربح ${periodNoun}`}
-            value={formatPrice(period.netProfit)}
-            sub="بعد الشراء وأجور النقل وأجر المندوب"
-            icon={<WalletIcon width={18} height={18} />}
-          />
-        </div>
       </div>
 
       {/* Month drill-down: its days */}
@@ -319,6 +313,9 @@ function DayDetail({
         <Link href={closeHref} className="btn btn-ghost btn-sm">
           إغلاق
         </Link>
+      </div>
+      <div className="border-b border-border p-6">
+        <ProfitBreakdown summary={s} title="صافي ربح هذا اليوم" flat />
       </div>
       <div className="grid gap-6 border-b border-border p-6 lg:grid-cols-2">
         <TopProducts summary={s} title="الأكثر مبيعاً في هذا اليوم" flat />

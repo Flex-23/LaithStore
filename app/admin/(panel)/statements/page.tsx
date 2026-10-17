@@ -11,7 +11,7 @@ import {
   isDayKey,
 } from "@/lib/business-day";
 import { orderCustomer } from "@/lib/order-customer";
-import { isDispatched, orderCost, orderNetProfit } from "@/lib/profit";
+import { isDispatched } from "@/lib/profit";
 import { PageHeader, StatusBadge } from "@/components/admin/ui";
 import { PrintButton } from "@/components/admin/print-button";
 import { Watermark } from "@/components/admin/watermark";
@@ -131,9 +131,6 @@ function Statement({
   const agent = r.agent;
 
   const dispatchedOrders = orders.filter((o) => isDispatched(o.status));
-  const goodsCost = dispatchedOrders.reduce((n, o) => n + orderCost(o), 0);
-  const deliveryFees = dispatchedOrders.reduce((n, o) => n + o.deliveryFee, 0);
-  const netProfit = orders.reduce((n, o) => n + orderNetProfit(o), 0);
   // Salary = number of dispatched orders x the fee on each (50 x 2,000 = 100,000).
   const fee = dispatchedOrders[0]?.agentCommission ?? agent.commissionPerOrder;
   const sameFee = dispatchedOrders.every((o) => (o.agentCommission ?? agent.commissionPerOrder) === fee);
@@ -146,11 +143,8 @@ function Statement({
     ["قيد التوصيل", formatNumber(r.shipped)],
     ["تم التسليم", formatNumber(r.delivered)],
     ["مرفوض", formatNumber(r.cancelled)],
-    ["مبيعات الطلبات المُخرَجة", formatPrice(r.dispatchedSales)],
-    ["سعر شراء المواد", formatPrice(goodsCost)],
-    ["أجور النقل", formatPrice(deliveryFees)],
-    ["أجر المندوب", formatPrice(r.commission)],
-    ["صافي ربح الطلبات", formatPrice(netProfit)],
+    ["أجر الطلب الواحد", formatPrice(fee)],
+    ["الطلبات المُحتسَبة", formatNumber(r.dispatched)],
   ];
 
   return (
@@ -183,7 +177,7 @@ function Statement({
           </header>
 
           {/* Summary */}
-          <section className="stmt-summary avoid-break mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <section className="stmt-summary avoid-break mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {summary.map(([label, value]) => (
               <div key={label} className="rounded-xl border border-border p-3">
                 <p className="text-xs text-muted">{label}</p>
@@ -232,46 +226,36 @@ function Statement({
                       <th className="px-3 py-2.5 font-medium">رقم الطلب</th>
                       <th className="px-3 py-2.5 font-medium">التاريخ</th>
                       <th className="px-3 py-2.5 font-medium">الزبون</th>
-                      <th className="px-3 py-2.5 font-medium">شركة التوصيل</th>
                       <th className="px-3 py-2.5 font-medium">الحالة</th>
-                      <th className="px-3 py-2.5 font-medium">السعر الكلي</th>
-                      <th className="px-3 py-2.5 font-medium">الشراء</th>
-                      <th className="px-3 py-2.5 font-medium">التوصيل</th>
                       <th className="px-3 py-2.5 font-medium">أجر المندوب</th>
-                      <th className="px-3 py-2.5 font-medium">صافي الربح</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {orders.map((o) => {
-                      const out = isDispatched(o.status);
-                      return (
-                        <tr key={o.id}>
-                          <td className="px-3 py-2.5 font-mono text-xs">#{o.id.slice(-8).toUpperCase()}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5 text-muted">{formatDate(o.createdAt)}</td>
-                          <td className="px-3 py-2.5">{orderCustomer(o).name}</td>
-                          <td className="px-3 py-2.5">{o.deliveryCompany ?? "—"}</td>
-                          <td className="px-3 py-2.5">
-                            <StatusBadge status={o.status} />
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 font-medium">{formatPrice(o.totalAmount)}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5">{out ? formatPrice(orderCost(o)) : "—"}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5">{out ? formatPrice(o.deliveryFee) : "—"}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5">
-                            {out ? formatPrice(o.agentCommission ?? agent.commissionPerOrder) : "—"}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 font-semibold">
-                            {out ? formatPrice(orderNetProfit(o)) : "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {orders.map((o) => (
+                      <tr key={o.id}>
+                        <td className="px-3 py-2.5 font-mono text-xs">#{o.id.slice(-8).toUpperCase()}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-muted">{formatDate(o.createdAt)}</td>
+                        <td className="px-3 py-2.5">{orderCustomer(o).name}</td>
+                        <td className="px-3 py-2.5">
+                          <StatusBadge status={o.status} />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 font-semibold">
+                          {isDispatched(o.status) ? formatPrice(o.agentCommission ?? agent.commissionPerOrder) : "—"}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t border-border bg-surface-2/60 font-semibold">
+                      <td className="px-3 py-2.5" colSpan={4}>
+                        المجموع الكلي ({formatNumber(r.dispatched)} طلب)
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-brand">{formatPrice(r.commission)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
-            <p className="mt-2 text-xs text-muted">
-              صافي ربح الطلب = السعر الكلي − سعر الشراء − أجور التوصيل − أجر المندوب، ويُحتسب للطلبات المُخرَجة فقط.
-            </p>
           </section>
 
           {/* Payouts */}

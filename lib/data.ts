@@ -1,6 +1,6 @@
 import { Prisma, type OrderStatus } from "@prisma/client";
 import { prisma } from "./prisma";
-import { orderNetProfit } from "./profit";
+import { isDispatched, orderCost, orderNetProfit } from "./profit";
 import { PRODUCTS_PER_CATEGORY } from "./constants";
 import {
   DEFAULT_HOME_CONTENT,
@@ -192,6 +192,18 @@ export type SalesSummary = {
   profit: number;
   /** Net profit of dispatched orders: price − purchase − delivery fee − agent fee (see lib/profit.ts). */
   netProfit: number;
+  /** Orders that left the store and how their money adds up (see lib/profit.ts). */
+  dispatched: {
+    count: number;
+    /** Sum of the orders' total price (goods + delivery fee). */
+    total: number;
+    /** Purchase cost of the goods. */
+    cost: number;
+    /** Delivery fees typed by the entry staff. */
+    deliveryFees: number;
+    /** Agents' per-order fees. */
+    commission: number;
+  };
   /** Units sold across non-cancelled orders. */
   itemsSold: number;
   statusBreakdown: Record<string, number>;
@@ -206,6 +218,7 @@ export function summarizeOrders(orders: OrderWithDetails[]): SalesSummary {
   let profit = 0;
   let netProfit = 0;
   let itemsSold = 0;
+  const dispatched = { count: 0, total: 0, cost: 0, deliveryFees: 0, commission: 0 };
 
   for (const order of orders) {
     statusBreakdown[order.status] = (statusBreakdown[order.status] ?? 0) + 1;
@@ -213,6 +226,13 @@ export function summarizeOrders(orders: OrderWithDetails[]): SalesSummary {
     if (order.status === "CANCELLED" || order.status === "RETURNED") continue;
     revenue += order.totalAmount;
     netProfit += orderNetProfit(order);
+    if (isDispatched(order.status)) {
+      dispatched.count += 1;
+      dispatched.total += order.totalAmount;
+      dispatched.cost += orderCost(order);
+      dispatched.deliveryFees += order.deliveryFee;
+      dispatched.commission += order.agentCommission ?? 0;
+    }
     for (const item of order.items) {
       itemsSold += item.quantity;
       profit += item.quantity * (item.priceAtPurchase - item.costAtPurchase);
@@ -232,6 +252,7 @@ export function summarizeOrders(orders: OrderWithDetails[]): SalesSummary {
     revenue,
     profit,
     netProfit,
+    dispatched,
     orderCount: orders.length,
     cancelledCount: (statusBreakdown.CANCELLED ?? 0) + (statusBreakdown.RETURNED ?? 0),
     pendingOrders: statusBreakdown.PENDING ?? 0,

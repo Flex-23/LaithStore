@@ -1,4 +1,5 @@
 import { orderCustomer } from "@/lib/order-customer";
+import { isDispatched, orderNetProfit } from "@/lib/profit";
 import type { OrderWithDetails } from "@/lib/data";
 import { StatusBadge } from "@/components/admin/ui";
 import { agentCode } from "@/lib/agent";
@@ -28,6 +29,7 @@ export function OrdersTable({
             <th className="px-5 py-3 font-medium">القطع</th>
             <th className="px-5 py-3 font-medium">الإجمالي</th>
             <th className="px-5 py-3 font-medium">أجر المندوب</th>
+            <th className="px-5 py-3 font-medium">صافي الربح</th>
             <th className="px-5 py-3 font-medium">الحالة</th>
             <th className="px-5 py-3 font-medium">التاريخ</th>
           </tr>
@@ -61,6 +63,9 @@ export function OrdersTable({
               <td className="whitespace-nowrap px-5 py-3 font-medium">{formatPrice(o.totalAmount)}</td>
               <td className="whitespace-nowrap px-5 py-3 text-muted">
                 {o.agentCommission != null ? formatPrice(o.agentCommission) : "—"}
+              </td>
+              <td className="whitespace-nowrap px-5 py-3 font-semibold">
+                {isDispatched(o.status) ? formatPrice(orderNetProfit(o)) : "—"}
               </td>
               <td className="px-5 py-3">
                 <StatusBadge status={o.status} />
