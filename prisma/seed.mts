@@ -301,6 +301,36 @@ async function main() {
     },
   });
 
+  // Demo follow-up employee (موظف المتابعة) — tracks all orders, no amounts.
+  const followPassword = await bcrypt.hash("follow1234", 10);
+  await prisma.user.upsert({
+    where: { phone: "07733333333" },
+    update: {},
+    create: {
+      name: "زينب كريم",
+      phone: "07733333333",
+      governorate: "بغداد",
+      password: followPassword,
+      role: Role.FOLLOWUP,
+      agentNumber: 2,
+    },
+  });
+
+  // Demo accounts employee (موظف الحسابات) — every financial page + agent statements.
+  const accountsPassword = await bcrypt.hash("accounts1234", 10);
+  await prisma.user.upsert({
+    where: { phone: "07744444444" },
+    update: {},
+    create: {
+      name: "حيدر نبيل",
+      phone: "07744444444",
+      governorate: "بغداد",
+      password: accountsPassword,
+      role: Role.ACCOUNTANT,
+      agentNumber: 3,
+    },
+  });
+
   // Home-page copy: create once with the defaults; never overwrite admin edits.
   await prisma.homeContent.upsert({
     where: { id: HOME_CONTENT_ID },
@@ -326,6 +356,7 @@ async function main() {
             name: p.name,
             description: p.description,
             price: p.price,
+            costPrice: Math.round((p.price * 0.7) / 250) * 250, // demo: ~30% margin
             discountedPrice: p.discountedPrice ?? null,
             isDiscounted: p.discountedPrice != null,
             image: p.image,
@@ -339,6 +370,8 @@ async function main() {
   console.log("✅ Seed complete.");
   console.log("   Admin login  → phone: 07700000000 · password: admin1234");
   console.log("   Agent login  → phone: 07722222222 · password: agent1234");
+  console.log("   Follow-up    → phone: 07733333333 · password: follow1234");
+  console.log("   Accounts     → phone: 07744444444 · password: accounts1234");
   console.log("   Customer     → phone: 07711111111 · password: user1234");
 }
 

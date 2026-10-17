@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAgentReports, getArchiveMonths, sumAgentReports } from "@/lib/data";
-import { requireAdminStaff } from "@/lib/permissions";
+import { requireAccountsStaff } from "@/lib/permissions";
 import { resolveMonthParam } from "@/lib/business-day";
 import { PageHeader } from "@/components/admin/ui";
 import { AgentStats } from "@/components/admin/agent-stats";
@@ -19,7 +19,7 @@ export default async function AgentReportsPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
-  await requireAdminStaff();
+  await requireAccountsStaff();
   const { month } = await searchParams;
   const selection = resolveMonthParam(month);
 
@@ -34,7 +34,7 @@ export default async function AgentReportsPage({
     <>
       <PageHeader
         title="تقارير المندوبين"
-        description="لكل مندوب: الطلبات المُخرَجة والواصلة والملغاة، الأجر المستحق، والمصروف له. يبدأ التقرير من الصفر مع كل شهر جديد ويبقى السابق في الأرشيف."
+        description="لكل مندوب: الطلبات المُخرَجة والمسلّمة والمرفوضة، الأجر المستحق، والمصروف له. يبدأ التقرير من الصفر مع كل شهر جديد ويبقى السابق في الأرشيف."
       >
         <MonthPicker months={months} value={selection.key} basePath="/admin/agents/reports" />
       </PageHeader>
@@ -60,7 +60,7 @@ export default async function AgentReportsPage({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
                   <th className="px-5 py-3 font-medium">المندوب</th>
@@ -68,8 +68,8 @@ export default async function AgentReportsPage({
                   <th className="px-5 py-3 font-medium">الطلبات</th>
                   <th className="px-5 py-3 font-medium">قيد الانتظار</th>
                   <th className="px-5 py-3 font-medium">مُخرَجة</th>
-                  <th className="px-5 py-3 font-medium">واصلة</th>
-                  <th className="px-5 py-3 font-medium">ملغاة</th>
+                  <th className="px-5 py-3 font-medium">تم التسليم</th>
+                  <th className="px-5 py-3 font-medium">مرفوضة</th>
                   <th className="px-5 py-3 font-medium">مبيعات المُخرَجة</th>
                   <th className="px-5 py-3 font-medium">الأجر المستحق</th>
                   <th className="px-5 py-3 font-medium">المصروف له</th>

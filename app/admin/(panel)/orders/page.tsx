@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getActiveAgentsLite, getAllOrders } from "@/lib/data";
 import { requireStaff } from "@/lib/permissions";
 import { agentCode } from "@/lib/agent";
+import { orderCustomer } from "@/lib/order-customer";
 import { claimOrderAction } from "@/app/actions/admin";
 import { PageHeader, StatusBadge } from "@/components/admin/ui";
 import { OrderStatusSelect } from "@/components/admin/order-status-select";
@@ -118,16 +119,28 @@ export default async function AdminOrdersPage({
                     </div>
                     <div>
                       <p className="text-xs text-muted">العميل</p>
-                      <p className="text-sm font-medium">{order.user.name}</p>
+                      <p className="text-sm font-medium">{orderCustomer(order).name}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted">الهاتف</p>
-                      <p className="ltr text-start text-sm">{order.user.phone}</p>
+                      <p className="ltr text-start text-sm">{orderCustomer(order).phone}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted">المحافظة</p>
-                      <p className="text-sm">{order.user.governorate}</p>
+                      <p className="text-sm">{orderCustomer(order).governorate}</p>
                     </div>
+                    {orderCustomer(order).address && (
+                      <div>
+                        <p className="text-xs text-muted">العنوان</p>
+                        <p className="text-sm">{orderCustomer(order).address}</p>
+                      </div>
+                    )}
+                    {order.deliveryCompany && (
+                      <div>
+                        <p className="text-xs text-muted">شركة التوصيل</p>
+                        <p className="text-sm">{order.deliveryCompany}</p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-xs text-muted">تاريخ الطلب</p>
                       <p className="text-sm">{formatDate(order.createdAt)}</p>
@@ -184,6 +197,11 @@ export default async function AdminOrdersPage({
                     <p className="font-serif text-2xl">
                       {formatPrice(order.totalAmount)}
                     </p>
+                    {order.deliveryFee > 0 && (
+                      <p className="text-xs text-muted">
+                        منها أجور نقل {formatPrice(order.deliveryFee)}
+                      </p>
+                    )}
                     {order.agent && order.agentCommission != null && (
                       <p className="text-xs text-muted">
                         أجر المندوب {formatPrice(order.agentCommission)}

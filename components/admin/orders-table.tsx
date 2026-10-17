@@ -1,3 +1,4 @@
+import { orderCustomer } from "@/lib/order-customer";
 import type { OrderWithDetails } from "@/lib/data";
 import { StatusBadge } from "@/components/admin/ui";
 import { agentCode } from "@/lib/agent";
@@ -18,7 +19,7 @@ export function OrdersTable({
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="table-cards w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-muted">
             <th className="px-5 py-3 font-medium">الطلب</th>
@@ -36,8 +37,11 @@ export function OrdersTable({
             <tr key={o.id} className="hover:bg-surface-2/60">
               <td className="px-5 py-3 font-mono text-xs">#{o.id.slice(-8).toUpperCase()}</td>
               <td className="px-5 py-3">
-                <p className="font-medium">{o.user.name}</p>
-                <p className="text-xs text-muted">{o.user.governorate}</p>
+                <p className="font-medium">{orderCustomer(o).name}</p>
+                <p className="text-xs text-muted">
+                  {orderCustomer(o).governorate}
+                  {o.deliveryCompany ? ` · ${o.deliveryCompany}` : ""}
+                </p>
               </td>
               {showAgent && (
                 <td className="px-5 py-3">

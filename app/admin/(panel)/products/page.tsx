@@ -24,6 +24,7 @@ export default async function AdminProductsPage() {
           id: p.id,
           name: p.name,
           description: p.description,
+          costPrice: p.costPrice,
           price: p.price,
           discountedPrice: p.discountedPrice,
           isDiscounted: p.isDiscounted,

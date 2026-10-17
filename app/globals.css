@@ -394,3 +394,171 @@
     background-size: 46px 46px;
   }
 }
+
+/* ------------------------------------------------------- Phone adjustments
+   Unlayered on purpose: these must win over the utility classes already on
+   the table cells (px-5, whitespace-nowrap, w-1/5 …). */
+@media (max-width: 767px) {
+  /* Tables become a stack of cards; every cell shows its column title. */
+  table.table-cards,
+  table.table-cards tbody,
+  table.table-cards tfoot,
+  table.table-cards tr,
+  table.table-cards td {
+    display: block;
+    width: 100%;
+  }
+  table.table-cards thead {
+    display: none;
+  }
+  table.table-cards tbody,
+  table.table-cards tfoot {
+    padding: 0.75rem;
+  }
+  table.table-cards tr {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 0.35rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+  table.table-cards tfoot tr {
+    background: var(--surface-2);
+  }
+  table.table-cards td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    white-space: normal;
+    text-align: end;
+    max-width: none;
+    border-bottom: 1px dashed var(--border);
+  }
+  table.table-cards td:last-child {
+    border-bottom: 0;
+  }
+  table.table-cards td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: start;
+  }
+  /* The first cell is the card's title: no label, bigger, left alone. */
+  table.table-cards td:first-child {
+    justify-content: flex-start;
+    text-align: start;
+    font-weight: 600;
+    padding-top: 0.75rem;
+  }
+  table.table-cards td:first-child::before {
+    display: none;
+  }
+  table.table-cards td[data-actions] {
+    justify-content: flex-start;
+    padding-bottom: 0.75rem;
+  }
+  table.table-cards td.font-mono {
+    direction: ltr;
+  }
+  table.table-cards td > div.flex {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 639px) {
+  /* 16px stops iOS Safari from zooming the page when a field is focused. */
+  .field-input {
+    font-size: 1rem;
+  }
+  /* Comfortable touch targets. */
+  .btn {
+    min-height: 2.75rem;
+  }
+  .btn-sm {
+    min-height: 2.5rem;
+  }
+  .btn-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* ------------------------------------------------------------------ Print
+   Statements are saved as PDF through the browser's print dialog. Always
+   print on white, hide the panel chrome and repeat the logo watermark. */
+@media print {
+  :root,
+  .dark {
+    --background: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f1f6f7;
+    --foreground: #163f44;
+    --heading: #1f7d86;
+    --muted: #5c8489;
+    --border: #cfe0e2;
+    --border-strong: #b3d3d7;
+    --brand: #2a99a3;
+    --brand-strong: #1f7d86;
+    --brand-soft: #e1f2f4;
+    --danger: #c4485a;
+    --success: #2f8f6a;
+    --accent: #f28da0;
+    --accent-strong: #e46b84;
+    --accent-soft: #fde8ed;
+  }
+  body {
+    background: #fff;
+  }
+  aside,
+  header.glass,
+  nav[aria-label="التنقل"],
+  .no-print,
+  [data-toast-root] {
+    display: none !important;
+  }
+  /* The panel grid collapses to a single full-width column. */
+  .lg\:grid {
+    display: block !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Fit the 10-column orders table on an A4 page. */
+  .statement {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+  .statement .overflow-x-auto {
+    overflow: visible !important;
+  }
+  .statement table {
+    font-size: 9.5px;
+  }
+  .statement th,
+  .statement td {
+    padding: 4px 5px !important;
+    white-space: normal !important;
+  }
+  .statement .stmt-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+  .statement tr,
+  .statement .avoid-break {
+    break-inside: avoid;
+  }
+  .statement thead {
+    display: table-header-group;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

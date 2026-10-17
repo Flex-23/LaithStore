@@ -22,11 +22,11 @@ import {
   recentBusinessDayKeys,
   recentBusinessMonthKeys,
 } from "@/lib/business-day";
-import { requireAdminStaff } from "@/lib/permissions";
+import { requireAccountsStaff } from "@/lib/permissions";
 import { PageHeader, StatCard, BarRow } from "@/components/admin/ui";
 import { PeriodTable, type PeriodRow } from "@/components/admin/period-table";
 import { OrdersTable } from "@/components/admin/orders-table";
-import { ChartIcon, PackageIcon, TagIcon, TruckIcon } from "@/components/icons";
+import { ChartIcon, PackageIcon, TagIcon, TruckIcon, WalletIcon } from "@/components/icons";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
 
@@ -77,7 +77,7 @@ export default async function AdminReportsPage({
 }: {
   searchParams: Promise<{ range?: string; month?: string; day?: string }>;
 }) {
-  await requireAdminStaff();
+  await requireAccountsStaff();
   const sp = await searchParams;
   const range: RangeKind = sp.range === "monthly" ? "monthly" : "daily";
   // Drill-down selections (validated; anything else is ignored).
@@ -150,18 +150,18 @@ export default async function AdminReportsPage({
       <p className="mb-3 text-sm text-muted">
         {periodNoun} الحالي: <span className="font-medium text-foreground">{rows[0].label}</span>
       </p>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
         <StatCard
           label={`إيرادات ${periodNoun}`}
           value={formatPrice(period.revenue)}
-          sub={`${formatNumber(period.orderCount)} طلب · ${formatNumber(period.cancelledCount)} ملغي`}
+          sub={`${formatNumber(period.orderCount)} طلب · ${formatNumber(period.cancelledCount)} مرفوض`}
           icon={<ChartIcon width={18} height={18} className="text-background" />}
           accent
         />
         <StatCard
           label="متوسط قيمة الطلب"
           value={formatPrice(aov)}
-          sub="لكل طلب غير ملغي"
+          sub="لكل طلب غير مرفوض"
           icon={<TruckIcon width={18} height={18} />}
         />
         <StatCard
@@ -176,6 +176,14 @@ export default async function AdminReportsPage({
           sub={`${formatNumber(lowStock.length)} على وشك النفاد`}
           icon={<TagIcon width={18} height={18} />}
         />
+        <div className="col-span-2 xl:col-span-1">
+          <StatCard
+            label={`صافي ربح ${periodNoun}`}
+            value={formatPrice(period.netProfit)}
+            sub="بعد الشراء وأجور النقل وأجر المندوب"
+            icon={<WalletIcon width={18} height={18} />}
+          />
+        </div>
       </div>
 
       {/* Month drill-down: its days */}
@@ -252,7 +260,7 @@ export default async function AdminReportsPage({
           <p className="px-6 py-10 text-center text-sm text-muted">كل المنتجات متوفرة بكميات جيدة.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
                   <th className="px-6 py-3 font-medium">المنتج</th>
@@ -304,7 +312,7 @@ function DayDetail({
             {formatNumber(s.orderCount)} طلب · {formatNumber(s.itemsSold)} قطعة ·{" "}
             <span className="font-medium text-foreground">{formatPrice(s.revenue)}</span>
             {s.cancelledCount > 0 && (
-              <> · <span className="text-danger">{formatNumber(s.cancelledCount)} ملغي</span></>
+              <> · <span className="text-danger">{formatNumber(s.cancelledCount)} مرفوض</span></>
             )}
           </p>
         </div>

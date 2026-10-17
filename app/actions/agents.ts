@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { adminOnly } from "@/lib/permissions";
-import { agentCode } from "@/lib/agent";
+import { agentCode, STAFF_ROLE_LABELS } from "@/lib/agent";
 import {
   createAgentSchema,
   fieldErrors,
@@ -21,6 +21,7 @@ function refreshAgents() {
   revalidatePath("/admin/agents");
   revalidatePath("/admin/agents/reports");
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/follow-up");
   revalidatePath("/admin/expenses");
 }
 
@@ -30,7 +31,8 @@ function readAgentForm(formData: FormData) {
     phone: formData.get("phone"),
     governorate: formData.get("governorate"),
     password: formData.get("password") ?? "",
-    commissionPerOrder: formData.get("commissionPerOrder") ?? "0",
+    role: formData.get("role"),
+    commissionPerOrder: formData.get("commissionPerOrder") || "0",
     canManageProducts: formData.get("canManageProducts") === "on",
     canManageOrders: formData.get("canManageOrders") === "on",
     canViewDashboard: formData.get("canViewDashboard") === "on",
@@ -63,9 +65,10 @@ export async function createAgentAction(
             phone: d.phone,
             governorate: d.governorate,
             password,
-            role: "AGENT",
+            role: d.role,
             agentNumber: (last._max.agentNumber ?? 0) + 1,
-            commissionPerOrder: d.commissionPerOrder,
+            // Only entry staff earn a per-order fee.
+            commissionPerOrder: d.role === "AGENT" ? d.commissionPerOrder : 0,
             canManageProducts: d.canManageProducts,
             canManageOrders: d.canManageOrders,
             canViewDashboard: d.canViewDashboard,
@@ -77,7 +80,7 @@ export async function createAgentAction(
     );
     refreshAgents();
     return {
-      success: `تمت إضافة المندوب ${agent.name} برقم ${agentCode(agent.agentNumber)}`,
+      success: `تمت إضافة ${STAFF_ROLE_LABELS[d.role]} ${agent.name} برقم ${agentCode(agent.agentNumber)}`,
     };
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -102,13 +105,14 @@ export async function updateAgentAction(
 
   try {
     await prisma.user.update({
-      where: { id: d.id, role: "AGENT" },
+      where: { id: d.id, role: { in: ["AGENT", "FOLLOWUP", "ACCOUNTANT"] } },
       data: {
+        role: d.role,
         name: d.name,
         phone: d.phone,
         governorate: d.governorate,
         ...(d.password ? { password: await hashPassword(d.password) } : {}),
-        commissionPerOrder: d.commissionPerOrder,
+        commissionPerOrder: d.role === "AGENT" ? d.commissionPerOrder : 0,
         canManageProducts: d.canManageProducts,
         canManageOrders: d.canManageOrders,
         canViewDashboard: d.canViewDashboard,
@@ -122,7 +126,7 @@ export async function updateAgentAction(
     return { error: DB_ERROR };
   }
   refreshAgents();
-  return { success: "تم تحديث بيانات المندوب" };
+  return { success: "تم تحديث بيانات الموظف" };
 }
 
 /** Create when there's no `id`, otherwise update. Used by the agents form. */
@@ -143,7 +147,7 @@ export async function toggleAgentActiveAction(formData: FormData) {
   if (id) {
     try {
       await prisma.user.update({
-        where: { id, role: "AGENT" },
+        where: { id, role: { in: ["AGENT", "FOLLOWUP", "ACCOUNTANT"] } },
         data: { isActive: active },
       });
     } catch {
@@ -160,7 +164,7 @@ export async function deleteAgentAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (id) {
     try {
-      await prisma.user.delete({ where: { id, role: "AGENT" } });
+      await prisma.user.delete({ where: { id, role: { in: ["AGENT", "FOLLOWUP", "ACCOUNTANT"] } } });
     } catch {
       /* ignore */
     }

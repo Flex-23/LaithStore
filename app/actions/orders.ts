@@ -53,7 +53,12 @@ export async function placeOrder(items: CartLine[]): Promise<PlaceOrderResult> {
         }
         const unit = effectivePrice(product);
         total += unit * qty;
-        return { productId: product.id, quantity: qty, priceAtPurchase: unit };
+        return {
+          productId: product.id,
+          quantity: qty,
+          priceAtPurchase: unit,
+          costAtPurchase: product.costPrice,
+        };
       });
 
       const order = await tx.order.create({

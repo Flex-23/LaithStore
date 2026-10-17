@@ -1,5 +1,5 @@
 import { getActiveAgentsLite, getArchiveMonths, getExpenses } from "@/lib/data";
-import { requireAdminStaff } from "@/lib/permissions";
+import { requireAccountsStaff } from "@/lib/permissions";
 import { resolveMonthParam } from "@/lib/business-day";
 import { PageHeader } from "@/components/admin/ui";
 import { MonthPicker } from "@/components/admin/month-picker";
@@ -14,7 +14,7 @@ export default async function AdminExpensesPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
-  await requireAdminStaff();
+  await requireAccountsStaff();
   const { month } = await searchParams;
   const selection = resolveMonthParam(month);
 

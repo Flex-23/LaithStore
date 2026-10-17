@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { adminOnly } from "@/lib/permissions";
+import { accountsOnly } from "@/lib/permissions";
 import { expenseSchema, fieldErrors } from "@/lib/zod-schemas";
 import type { AdminState } from "./admin";
 
 const DB_ERROR = "خطأ في قاعدة البيانات. تأكد من تشغيل MySQL وتطبيق المخطط.";
-const UNAUTHORIZED = "هذا الإجراء متاح للمدير فقط";
+const UNAUTHORIZED = "هذا الإجراء متاح للمدير وموظف الحسابات فقط";
 
 function refreshExpenses() {
   revalidatePath("/admin/expenses");
@@ -20,7 +20,7 @@ export async function addExpenseAction(
   _prev: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
-  if (!(await adminOnly())) return { error: UNAUTHORIZED };
+  if (!(await accountsOnly())) return { error: UNAUTHORIZED };
 
   const parsed = expenseSchema.safeParse({
     amount: formData.get("amount"),
@@ -63,7 +63,7 @@ export async function addExpenseAction(
 }
 
 export async function deleteExpenseAction(formData: FormData) {
-  if (!(await adminOnly())) redirect("/admin/login");
+  if (!(await accountsOnly())) redirect("/admin/login");
   const id = String(formData.get("id") ?? "");
   if (id) {
     try {

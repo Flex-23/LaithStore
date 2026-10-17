@@ -132,7 +132,7 @@ export function ExpenseAdmin({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
                   <th className="px-5 py-3 font-medium">التاريخ</th>

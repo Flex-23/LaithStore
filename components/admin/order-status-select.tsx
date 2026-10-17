@@ -6,13 +6,17 @@ import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
 export function OrderStatusSelect({
   orderId,
   status,
+  redirectTo,
 }: {
   orderId: string;
   status: string;
+  /** Admin page to return to after saving. */
+  redirectTo?: string;
 }) {
   return (
     <form action={updateOrderStatusAction}>
       <input type="hidden" name="orderId" value={orderId} />
+      {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
       <select
         name="status"
         defaultValue={status}

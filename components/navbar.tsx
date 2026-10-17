@@ -126,7 +126,7 @@ export function Navbar({ user }: { user: SessionUser | null }) {
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate text-sm font-semibold">{user.name}</p>
                       <p className="mt-0.5 text-xs text-muted">
-                        {user.role === "ADMIN" ? "مدير" : user.role === "AGENT" ? "مندوب" : "عضو"}
+                        {user.role === "ADMIN" ? "مدير" : user.role === "AGENT" ? "موظف إدخال" : user.role === "FOLLOWUP" ? "موظف متابعة" : user.role === "ACCOUNTANT" ? "موظف حسابات" : "عضو"}
                       </p>
                     </div>
                     <div className="p-1.5">

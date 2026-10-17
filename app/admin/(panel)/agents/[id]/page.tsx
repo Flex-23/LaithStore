@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAgentDetail, getArchiveMonths } from "@/lib/data";
-import { requireAdminStaff } from "@/lib/permissions";
-import { agentCode, PERMISSIONS, PERMISSION_FIELDS, PERMISSION_LABELS } from "@/lib/agent";
+import { requireAccountsStaff } from "@/lib/permissions";
+import { agentCode } from "@/lib/agent";
 import { resolveMonthParam } from "@/lib/business-day";
 import { PageHeader } from "@/components/admin/ui";
 import { AgentStats } from "@/components/admin/agent-stats";
@@ -22,7 +22,7 @@ export default async function AgentDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ month?: string }>;
 }) {
-  await requireAdminStaff();
+  await requireAccountsStaff();
   const [{ id }, { month }] = await Promise.all([params, searchParams]);
   const selection = resolveMonthParam(month);
 
@@ -34,7 +34,6 @@ export default async function AgentDetailPage({
 
   const { report, orders, expenses } = detail;
   const agent = report.agent;
-  const granted = PERMISSIONS.filter((p) => agent[PERMISSION_FIELDS[p] as keyof typeof agent]);
 
   return (
     <>
@@ -54,20 +53,6 @@ export default async function AgentDetailPage({
         <DetailItem label="المحافظة" value={agent.governorate} />
         <DetailItem label="الأجر لكل طلب مُخرَج" value={formatPrice(agent.commissionPerOrder)} />
         <DetailItem label="تاريخ الإضافة" value={formatDate(agent.createdAt)} />
-        <div className="sm:col-span-2 lg:col-span-4">
-          <p className="text-xs text-muted">الصلاحيات</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {granted.length === 0 ? (
-              <span className="text-sm text-muted">بلا صلاحيات</span>
-            ) : (
-              granted.map((p) => (
-                <span key={p} className="badge">
-                  {PERMISSION_LABELS[p]}
-                </span>
-              ))
-            )}
-          </div>
-        </div>
       </section>
 
       <p className="mb-3 text-sm text-muted">

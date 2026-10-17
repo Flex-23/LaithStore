@@ -1,4 +1,5 @@
 import { requireStaff } from "@/lib/permissions";
+import { ResponsiveTables } from "@/components/admin/responsive-tables";
 import { AdminSidebar } from "@/components/admin/sidebar";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +18,9 @@ export default async function AdminPanelLayout({
         agentNumber={staff.agentNumber}
         permissions={staff.permissions}
       />
+      <ResponsiveTables />
       <div className="min-w-0">
-        <main className="px-5 py-7 sm:px-8 lg:px-10 lg:py-10">{children}</main>
+        <main className="px-4 pb-28 pt-5 sm:px-8 sm:pt-7 lg:px-10 lg:py-10 lg:pb-10">{children}</main>
       </div>
     </div>
   );

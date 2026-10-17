@@ -20,6 +20,7 @@ export function MoneyInput({
   hint,
   error,
   required,
+  onValueChange,
 }: {
   label: string;
   name: string;
@@ -28,6 +29,8 @@ export function MoneyInput({
   hint?: string;
   error?: string;
   required?: boolean;
+  /** Called with the plain number as the user types (0 when empty). */
+  onValueChange?: (value: number) => void;
 }) {
   const [digits, setDigits] = useState(
     defaultValue != null ? String(Math.round(defaultValue)) : "",
@@ -46,7 +49,11 @@ export function MoneyInput({
         className="field-input"
         placeholder={placeholder}
         value={digits ? formatNumber(Number(digits)) : ""}
-        onChange={(e) => setDigits(digitsOf(e.target.value))}
+        onChange={(e) => {
+          const next = digitsOf(e.target.value);
+          setDigits(next);
+          onValueChange?.(Number(next || 0));
+        }}
         aria-invalid={!!error}
         required={required}
         autoComplete="off"

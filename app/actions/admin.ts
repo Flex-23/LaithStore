@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { adminOnly, staffWith } from "@/lib/permissions";
+import { adminOnly, getStaff, staffWith } from "@/lib/permissions";
 import { saveImageUpload, UploadError } from "@/lib/upload";
 import {
   assignAgentSchema,
@@ -142,6 +142,7 @@ async function readProduct(formData: FormData) {
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description"),
+    costPrice: formData.get("costPrice") || "0",
     price: formData.get("price"),
     image: img.image,
     stockQuantity: formData.get("stockQuantity"),
@@ -170,6 +171,7 @@ export async function createProductAction(
       data: {
         name: d.name,
         description: d.description,
+        costPrice: d.costPrice,
         price: d.price,
         discountedPrice: d.isDiscounted ? (d.discountedPrice ?? null) : null,
         isDiscounted: Boolean(d.isDiscounted),
@@ -203,6 +205,7 @@ export async function updateProductAction(
       data: {
         name: d.name,
         description: d.description,
+        costPrice: d.costPrice,
         price: d.price,
         discountedPrice: d.isDiscounted ? (d.discountedPrice ?? null) : null,
         isDiscounted: Boolean(d.isDiscounted),
@@ -270,34 +273,82 @@ function agentAssignment(agent: { id: string; commissionPerOrder: number } | nul
     : { agentId: null, agentCommission: null };
 }
 
+/** Only same-site admin paths are valid post-action destinations. */
+function safeBack(value: FormDataEntryValue | null, fallback: string): string {
+  const v = String(value ?? "");
+  return v.startsWith("/admin/") && !v.startsWith("//") ? v : fallback;
+}
+
 /**
- * Changes an order's status. When an agent does this on an unassigned order,
- * the order becomes theirs.
+ * Changes an order's status: admin and follow-up employees only (entry staff
+ * register orders but never change their status).
  */
 export async function updateOrderStatusAction(formData: FormData) {
-  const staff = await staffWith("orders");
+  const staff = await getStaff();
   if (!staff) redirect("/admin/login");
+  const back = safeBack(formData.get("redirectTo"), "/admin/orders");
   const parsed = orderStatusSchema.safeParse({
     orderId: formData.get("orderId"),
     status: formData.get("status"),
   });
   if (parsed.success) {
-    try {
-      const order = await prisma.order.findUnique({
-        where: { id: parsed.data.orderId },
-        select: { agentId: true },
-      });
-      const claim = staff.role === "AGENT" && order && !order.agentId;
-      await prisma.order.update({
-        where: { id: parsed.data.orderId },
-        data: { status: parsed.data.status, ...(claim ? agentAssignment(staff) : {}) },
-      });
-    } catch {
-      /* ignore */
+    // Only the admin and the follow-up employee change statuses; entry staff can't.
+    const canChange =
+      staff.role === "ADMIN" || staff.role === "FOLLOWUP" || staff.permissions.orders;
+    if (canChange) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          const order = await tx.order.findUnique({
+            where: { id: parsed.data.orderId },
+            select: {
+              agentId: true,
+              status: true,
+              items: { select: { productId: true, quantity: true } },
+            },
+          });
+          if (!order) return;
+          const next = parsed.data.status;
+          if (next === order.status) return;
+          // "Rejected order received back" only follows a rejected order.
+          if (next === "RETURNED" && order.status !== "CANCELLED") return;
+
+          if (next === "RETURNED") {
+            // The goods are back in the store: return them to stock.
+            for (const item of order.items) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stockQuantity: { increment: item.quantity } },
+              });
+            }
+          } else if (order.status === "RETURNED") {
+            // Reopening a returned order takes the goods out of stock again.
+            for (const item of order.items) {
+              const res = await tx.product.updateMany({
+                where: { id: item.productId, stockQuantity: { gte: item.quantity } },
+                data: { stockQuantity: { decrement: item.quantity } },
+              });
+              if (res.count === 0) throw new Error("stock");
+            }
+          }
+
+          const claim = staff.role === "AGENT" && !order.agentId;
+          await tx.order.update({
+            where: { id: parsed.data.orderId },
+            data: { status: next, ...(claim ? agentAssignment(staff) : {}) },
+          });
+        });
+      } catch {
+        /* ignore — e.g. not enough stock to reopen a returned order */
+      }
+      revalidatePath("/");
+      revalidatePath("/products");
+      revalidatePath("/admin/products");
     }
     refreshOrders();
+    revalidatePath("/admin/my-orders");
+    revalidatePath("/admin/follow-up");
   }
-  redirect("/admin/orders");
+  redirect(back);
 }
 
 /** Agent takes an unassigned order without changing its status. */

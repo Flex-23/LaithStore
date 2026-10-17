@@ -20,6 +20,7 @@ type Product = {
   id: string;
   name: string;
   description: string;
+  costPrice: number;
   price: number;
   discountedPrice: number | null;
   isDiscounted: boolean;
@@ -135,14 +136,25 @@ export function ProductAdmin({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <MoneyInput
-                  label={`السعر (${CURRENCY})`}
+                  label={`سعر الشراء (${CURRENCY})`}
+                  name="costPrice"
+                  placeholder="18,000"
+                  defaultValue={editing?.costPrice}
+                  hint="تكلفة المادة عليك — أساس حساب الربح"
+                  required
+                  error={state.fieldErrors?.costPrice}
+                />
+                <MoneyInput
+                  label={`سعر البيع (${CURRENCY})`}
                   name="price"
                   placeholder="25,000"
                   defaultValue={editing?.price}
                   error={state.fieldErrors?.price}
                 />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   label="المخزون"
                   name="stockQuantity"
@@ -225,7 +237,7 @@ export function ProductAdmin({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-start text-xs text-muted">
                   <th className="px-5 py-3 font-medium">المنتج</th>
@@ -264,6 +276,10 @@ export function ProductAdmin({
                       ) : (
                         <span className="font-medium">{formatPrice(p.price)}</span>
                       )}
+                      <p className="text-xs text-muted">
+                        شراء {formatPrice(p.costPrice)} · ربح{" "}
+                        {formatPrice((p.isDiscounted && p.discountedPrice != null ? p.discountedPrice : p.price) - p.costPrice)}
+                      </p>
                     </td>
                     <td className="px-5 py-3">
                       <span

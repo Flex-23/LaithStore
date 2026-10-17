@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { orderCustomer } from "@/lib/order-customer";
 import {
   getCatalogCounts,
   getOrdersBetween,
@@ -15,6 +16,7 @@ import {
   PackageIcon,
   TruckIcon,
   UserIcon,
+  WalletIcon,
 } from "@/components/icons";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
@@ -46,11 +48,11 @@ export default async function AdminDashboard() {
         </Link>
       </PageHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
         <StatCard
           label="إيرادات اليوم"
           value={formatPrice(s.revenue)}
-          sub="باستثناء الطلبات الملغاة"
+          sub="باستثناء الطلبات المرفوضة"
           icon={<ChartIcon width={18} height={18} className="text-background" />}
           accent
         />
@@ -72,6 +74,14 @@ export default async function AdminDashboard() {
           sub="الأعضاء المسجّلون"
           icon={<UserIcon width={18} height={18} />}
         />
+        <div className="col-span-2 xl:col-span-1">
+          <StatCard
+            label="صافي ربح اليوم"
+            value={formatPrice(s.netProfit)}
+            sub="بعد الشراء وأجور النقل وأجر المندوب"
+            icon={<WalletIcon width={18} height={18} />}
+          />
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -127,7 +137,7 @@ export default async function AdminDashboard() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
                   <th className="px-6 py-3 font-medium">الطلب</th>
@@ -144,7 +154,7 @@ export default async function AdminDashboard() {
                     <td className="px-6 py-3 font-mono text-xs">
                       #{order.id.slice(-8).toUpperCase()}
                     </td>
-                    <td className="px-6 py-3">{order.user.name}</td>
+                    <td className="px-6 py-3">{orderCustomer(order).name}</td>
                     <td className="px-6 py-3 text-muted">
                       {formatNumber(order.items.reduce((n, i) => n + i.quantity, 0))}
                     </td>

@@ -28,14 +28,14 @@ export function PeriodTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="table-cards w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-muted">
             <th className="px-6 py-3 font-medium">{periodHeading}</th>
             <th className="px-6 py-3 font-medium">الطلبات</th>
             <th className="px-6 py-3 font-medium">القطع</th>
             <th className="px-6 py-3 font-medium">الإيرادات</th>
-            <th className="px-6 py-3 font-medium">ملغي</th>
+            <th className="px-6 py-3 font-medium">مرفوض</th>
             <th className="px-6 py-3 font-medium"></th>
           </tr>
         </thead>

@@ -39,15 +39,17 @@ export const ORDER_STATUSES = [
   "SHIPPED",
   "DELIVERED",
   "CANCELLED",
+  "RETURNED",
 ] as const;
 
 export type OrderStatusValue = (typeof ORDER_STATUSES)[number];
 
 export const ORDER_STATUS_LABELS: Record<OrderStatusValue, string> = {
   PENDING: "قيد الانتظار",
-  SHIPPED: "تم الشحن",
-  DELIVERED: "تم التوصيل",
-  CANCELLED: "ملغي",
+  SHIPPED: "قيد التوصيل",
+  DELIVERED: "تم التسليم",
+  CANCELLED: "مرفوض",
+  RETURNED: "تم استلام المرفوض",
 };
 
 export function statusLabel(status: string): string {

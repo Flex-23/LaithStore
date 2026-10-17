@@ -25,9 +25,10 @@ import { CURRENCY, GOVERNORATES } from "@/lib/constants";
 import { formatNumber, formatPrice } from "@/lib/format";
 import {
   agentCode,
-  PERMISSIONS,
-  PERMISSION_FIELDS,
-  PERMISSION_LABELS,
+  STAFF_ROLES,
+  STAFF_ROLE_LABELS,
+  isStaffRole,
+  type StaffRole,
 } from "@/lib/agent";
 
 type AgentRow = AgentRecord;
@@ -37,6 +38,8 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState<AgentRow | null>(null);
   const [formVersion, setFormVersion] = useState(0);
+  // Job title drives which fields apply (only entry staff earn a per-order fee).
+  const [role, setRole] = useState<StaffRole>("AGENT");
   const [state, submit, pending] = useActionState<AdminState, FormData>(
     saveAgentAction,
     {},
@@ -47,6 +50,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
       toast(state.success);
       router.refresh();
       setEditing(null);
+      setRole("AGENT");
       setFormVersion((v) => v + 1);
     } else if (state.error) {
       toast(state.error, "error");
@@ -55,6 +59,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
 
   function startEdit(a: AgentRow) {
     setEditing(a);
+    setRole(isStaffRole(a.role) ? a.role : "AGENT");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -66,7 +71,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-serif text-xl">
-                {editing ? "تعديل المندوب" : "مندوب جديد"}
+                {editing ? "تعديل الموظف" : "موظف جديد"}
               </h2>
               {editing ? (
                 <p className="text-xs text-muted">
@@ -93,10 +98,35 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
             className="mt-5 space-y-4"
           >
             {editing && <input type="hidden" name="id" value={editing.id} />}
+            <div>
+              <label className="field-label" htmlFor="role">
+                المسمى الوظيفي
+              </label>
+              <select
+                id="role"
+                name="role"
+                className="field-input"
+                value={role}
+                onChange={(e) => setRole(e.target.value as StaffRole)}
+              >
+                {STAFF_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {STAFF_ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-muted">
+                {role === "AGENT"
+                  ? "يجهّز الطلبات ويسجلها فقط، ويُحتسب له أجر عن كل طلب."
+                  : role === "FOLLOWUP"
+                    ? "يتابع جميع الطلبات ويغيّر حالتها، بدون ظهور أي مبالغ."
+                    : "يرى كل الصفحات المالية (التقارير، الصرفيات) ويُصدر كشوفات المندوبين PDF."}
+              </p>
+            </div>
             <Field
               label="الاسم"
               name="name"
-              placeholder="اسم المندوب"
+              placeholder="اسم الموظف"
               defaultValue={editing?.name}
               error={state.fieldErrors?.name}
             />
@@ -116,7 +146,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
               defaultValue={editing?.governorate ?? ""}
               error={state.fieldErrors?.governorate}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label={editing ? "كلمة مرور جديدة" : "كلمة المرور"}
                 name="password"
@@ -125,35 +155,17 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                 autoComplete="new-password"
                 error={state.fieldErrors?.password}
               />
-              <MoneyInput
-                label={`الأجر لكل طلب (${CURRENCY})`}
-                name="commissionPerOrder"
-                placeholder="2,000"
-                defaultValue={editing?.commissionPerOrder ?? 0}
-                hint="يُحتسب لكل طلب يُخرجه (تم الشحن أو التوصيل)"
-                error={state.fieldErrors?.commissionPerOrder}
-              />
+              {role === "AGENT" && (
+                <MoneyInput
+                  label={`الأجر لكل طلب (${CURRENCY})`}
+                  name="commissionPerOrder"
+                  placeholder="2,000"
+                  defaultValue={editing?.commissionPerOrder ?? 0}
+                  hint="يُحتسب لكل طلب يُخرجه (تم الشحن أو التوصيل)"
+                  error={state.fieldErrors?.commissionPerOrder}
+                />
+              )}
             </div>
-
-            <fieldset>
-              <legend className="field-label">الصلاحيات</legend>
-              <div className="space-y-2 rounded-xl border border-border p-3">
-                {PERMISSIONS.map((perm) => {
-                  const field = PERMISSION_FIELDS[perm] as keyof AgentRow;
-                  return (
-                    <label key={perm} className="flex items-center gap-2.5 text-sm">
-                      <input
-                        type="checkbox"
-                        name={PERMISSION_FIELDS[perm]}
-                        defaultChecked={editing ? Boolean(editing[field]) : false}
-                        className="h-4 w-4 accent-brand"
-                      />
-                      {PERMISSION_LABELS[perm]}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
 
             <div className="flex gap-2 pt-1">
               <button className="btn btn-primary flex-1" disabled={pending}>
@@ -185,12 +197,13 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-cards w-full text-sm">
               {/* The actions column shrinks to one row of buttons (w-px = min
                   content); the four data columns share the remaining width equally. */}
               <thead>
                 <tr className="border-b border-border text-xs text-muted">
                   <th className="w-1/5 px-4 py-3 font-medium">الاسم</th>
+                  <th className="w-1/5 px-4 py-3 font-medium">المسمى</th>
                   <th className="w-1/5 px-4 py-3 font-medium">الرقم</th>
                   <th className="w-1/5 px-4 py-3 font-medium">الأجر لكل طلب</th>
                   <th className="w-1/5 px-4 py-3 font-medium">الحالة</th>
@@ -203,9 +216,12 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                     <td className="truncate px-4 py-3 font-medium">{a.name}</td>
                     {/* `font-mono` cells are LTR + end-aligned globally, so the code
                         sits flush with its RTL header. */}
+                    <td className="px-4 py-3 text-sm">
+                      {STAFF_ROLE_LABELS[isStaffRole(a.role) ? a.role : "AGENT"]}
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs">{agentCode(a.agentNumber)}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium">
-                      {formatPrice(a.commissionPerOrder)}
+                      {a.role === "AGENT" ? formatPrice(a.commissionPerOrder) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -218,6 +234,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
+                        {a.role === "AGENT" && (
                         <Link
                           href={`/admin/agents/${a.id}`}
                           className="btn btn-primary btn-sm"
@@ -225,6 +242,7 @@ export function AgentAdmin({ agents }: { agents: AgentRow[] }) {
                         >
                           <EyeIcon width={15} height={15} /> تفاصيل
                         </Link>
+                        )}
                         <button
                           type="button"
                           onClick={() => startEdit(a)}

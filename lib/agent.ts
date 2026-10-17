@@ -25,3 +25,17 @@ export type Permissions = Record<Permission, boolean>;
 export function agentCode(agentNumber: number | null | undefined): string {
   return agentNumber == null ? "—" : `AG-${String(agentNumber).padStart(4, "0")}`;
 }
+
+/** The two staff job titles an admin can assign (besides the admin himself). */
+export const STAFF_ROLES = ["AGENT", "FOLLOWUP", "ACCOUNTANT"] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  AGENT: "موظف إدخال",
+  FOLLOWUP: "موظف متابعة",
+  ACCOUNTANT: "موظف حسابات",
+};
+
+export function isStaffRole(value: unknown): value is StaffRole {
+  return value === "AGENT" || value === "FOLLOWUP" || value === "ACCOUNTANT";
+}

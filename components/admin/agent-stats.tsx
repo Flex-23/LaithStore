@@ -7,7 +7,7 @@ import { formatNumber, formatPrice } from "@/lib/format";
 export function AgentStats({ totals }: { totals: AgentTotals }) {
   const storeNet = totals.dispatchedSales - totals.commission;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
       <StatCard
         label="مستحقات المندوب (الأجر)"
         value={formatPrice(totals.commission)}
@@ -18,7 +18,7 @@ export function AgentStats({ totals }: { totals: AgentTotals }) {
       <StatCard
         label="الطلبات"
         value={formatNumber(totals.totalOrders)}
-        sub={`${formatNumber(totals.shipped)} مشحونة · ${formatNumber(totals.delivered)} واصلة · ${formatNumber(totals.cancelled)} ملغاة`}
+        sub={`${formatNumber(totals.pending)} انتظار · ${formatNumber(totals.shipped)} قيد التوصيل · ${formatNumber(totals.delivered)} تم التسليم · ${formatNumber(totals.cancelled)} مرفوضة`}
         icon={<TruckIcon width={18} height={18} />}
       />
       <StatCard

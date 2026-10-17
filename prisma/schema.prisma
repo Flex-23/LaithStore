@@ -14,13 +14,20 @@ enum Role {
   USER
   ADMIN
   AGENT
+  /// موظف المتابعة: يتابع كل الطلبات ويغيّر حالتها بلا مبالغ.
+  FOLLOWUP
+  /// موظف الحسابات: كل الصفحات المالية وكشوفات المندوبين.
+  ACCOUNTANT
 }
 
 enum OrderStatus {
   PENDING
   SHIPPED
   DELIVERED
+  /// مرفوض
   CANCELLED
+  /// تم استلام الطلب المرفوض — المواد رجعت للمخزون.
+  RETURNED
 }
 
 model User {
@@ -66,6 +73,9 @@ model Product {
   id              String      @id @default(cuid())
   name            String
   description     String      @db.Text
+  /// سعر الشراء (التكلفة) — أساس حساب الربح.
+  costPrice       Float       @default(0)
+  /// سعر البيع.
   price           Float
   discountedPrice Float?
   isDiscounted    Boolean     @default(false)
@@ -82,9 +92,19 @@ model Product {
 
 model Order {
   id          String      @id @default(cuid())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      OrderStatus @default(PENDING)
+  /// Registered customer; null for orders an agent registered by hand.
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Customer details typed by the agent (null on storefront orders — use `user`).
+  customerName        String?
+  customerPhone       String?
+  customerGovernorate String?
+  customerAddress     String? @db.Text
+  /// Delivery company chosen by the agent.
+  deliveryCompany     String?
+  /// أجور النقل — typed by hand; included in totalAmount, excluded from profit.
+  deliveryFee         Float   @default(0)
+  status     OrderStatus @default(PENDING)
   totalAmount Float
   items       OrderItem[]
   createdAt   DateTime    @default(now())
@@ -109,6 +129,8 @@ model OrderItem {
   product         Product @relation(fields: [productId], references: [id])
   quantity        Int
   priceAtPurchase Float
+  /// Purchase cost per unit at order time, so later cost edits do not rewrite profit.
+  costAtPurchase  Float   @default(0)
 
   @@index([orderId])
   @@index([productId])

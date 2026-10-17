@@ -1,5 +1,6 @@
 import { Prisma, type OrderStatus } from "@prisma/client";
 import { prisma } from "./prisma";
+import { orderNetProfit } from "./profit";
 import { PRODUCTS_PER_CATEGORY } from "./constants";
 import {
   DEFAULT_HOME_CONTENT,
@@ -187,6 +188,10 @@ export type SalesSummary = {
   orderCount: number;
   cancelledCount: number;
   pendingOrders: number;
+  /** Gross profit: Σ qty × (sale price − purchase cost) over non-cancelled orders (delivery fees excluded). */
+  profit: number;
+  /** Net profit of dispatched orders: price − purchase − delivery fee − agent fee (see lib/profit.ts). */
+  netProfit: number;
   /** Units sold across non-cancelled orders. */
   itemsSold: number;
   statusBreakdown: Record<string, number>;
@@ -198,14 +203,19 @@ export function summarizeOrders(orders: OrderWithDetails[]): SalesSummary {
   const statusBreakdown: Record<string, number> = {};
   const byProduct = new Map<string, { sold: number; revenue: number }>();
   let revenue = 0;
+  let profit = 0;
+  let netProfit = 0;
   let itemsSold = 0;
 
   for (const order of orders) {
     statusBreakdown[order.status] = (statusBreakdown[order.status] ?? 0) + 1;
-    if (order.status === "CANCELLED") continue;
+    // Rejected orders (and their returned goods) are not sales.
+    if (order.status === "CANCELLED" || order.status === "RETURNED") continue;
     revenue += order.totalAmount;
+    netProfit += orderNetProfit(order);
     for (const item of order.items) {
       itemsSold += item.quantity;
+      profit += item.quantity * (item.priceAtPurchase - item.costAtPurchase);
       const entry = byProduct.get(item.product.name) ?? { sold: 0, revenue: 0 };
       entry.sold += item.quantity;
       entry.revenue += item.quantity * item.priceAtPurchase;
@@ -220,8 +230,10 @@ export function summarizeOrders(orders: OrderWithDetails[]): SalesSummary {
 
   return {
     revenue,
+    profit,
+    netProfit,
     orderCount: orders.length,
-    cancelledCount: statusBreakdown.CANCELLED ?? 0,
+    cancelledCount: (statusBreakdown.CANCELLED ?? 0) + (statusBreakdown.RETURNED ?? 0),
     pendingOrders: statusBreakdown.PENDING ?? 0,
     itemsSold,
     statusBreakdown,
@@ -253,6 +265,7 @@ export async function getCatalogCounts(): Promise<CatalogCounts> {
 
 const agentRecordSelect = {
   id: true,
+  role: true,
   name: true,
   phone: true,
   governorate: true,
@@ -268,6 +281,20 @@ const agentRecordSelect = {
 
 export type AgentRecord = Prisma.UserGetPayload<{ select: typeof agentRecordSelect }>;
 
+/** Every employee the admin manages: entry, follow-up and accounts staff. */
+export async function getStaffMembers(): Promise<AgentRecord[]> {
+  try {
+    return await prisma.user.findMany({
+      where: { role: { in: ["AGENT", "FOLLOWUP", "ACCOUNTANT"] } },
+      orderBy: { agentNumber: "asc" },
+      select: agentRecordSelect,
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Entry employees (agents) only — the ones with orders, fees and reports. */
 export async function getAgents(): Promise<AgentRecord[]> {
   try {
     return await prisma.user.findMany({
@@ -349,7 +376,7 @@ export function buildAgentReport(
   };
   for (const o of orders) {
     if (o.status === "PENDING") r.pending += 1;
-    else if (o.status === "CANCELLED") r.cancelled += 1;
+    else if (o.status === "CANCELLED" || o.status === "RETURNED") r.cancelled += 1;
     else {
       if (o.status === "SHIPPED") r.shipped += 1;
       else r.delivered += 1;

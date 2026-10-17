@@ -68,7 +68,8 @@ export const productSchema = z
       .trim()
       .min(2, "الوصف قصير جداً")
       .max(300, "الوصف طويل جداً"),
-    price: z.coerce.number().positive("السعر يجب أن يكون أكبر من صفر"),
+    costPrice: z.coerce.number().min(0, "سعر الشراء لا يمكن أن يكون سالباً"),
+    price: z.coerce.number().positive("سعر البيع يجب أن يكون أكبر من صفر"),
     discountedPrice: z.coerce
       .number()
       .positive("سعر الخصم يجب أن يكون أكبر من صفر")
@@ -93,7 +94,7 @@ export const productSchema = z
 
 export const orderStatusSchema = z.object({
   orderId: z.string().min(1),
-  status: z.enum(["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"]),
+  status: z.enum(["PENDING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED"]),
 });
 
 export const assignAgentSchema = z.object({
@@ -110,6 +111,8 @@ const commissionPerOrder = z.coerce
   .min(0, "المبلغ لا يمكن أن يكون سالباً")
   .max(10_000_000, "المبلغ كبير جداً");
 
+const staffRole = z.enum(["AGENT", "FOLLOWUP", "ACCOUNTANT"], { message: "اختر المسمى الوظيفي" });
+
 const agentPermissions = {
   canManageProducts: z.coerce.boolean(),
   canManageOrders: z.coerce.boolean(),
@@ -122,6 +125,7 @@ export const createAgentSchema = z.object({
   phone,
   governorate,
   password: z.string().min(6, "6 أحرف على الأقل"),
+  role: staffRole,
   commissionPerOrder,
   ...agentPermissions,
 });
@@ -135,6 +139,7 @@ export const updateAgentSchema = z.object({
   password: z
     .string()
     .refine((v) => v === "" || v.length >= 6, "6 أحرف على الأقل"),
+  role: staffRole,
   commissionPerOrder,
   ...agentPermissions,
 });
@@ -192,3 +197,16 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
+
+// --- Orders registered by an agent -----------------------------------------
+
+export const agentOrderSchema = z.object({
+  customerName: z.string().trim().min(2, "اكتب اسم الزبون").max(60, "الاسم طويل جداً"),
+  customerPhone: phone,
+  customerGovernorate: governorate,
+  customerAddress: z.string().trim().max(240, "العنوان طويل جداً"),
+  deliveryCompany: z.string().trim().min(2, "اكتب شركة التوصيل").max(60, "الاسم طويل جداً"),
+  // أجور النقل — typed by hand.
+  deliveryFee: z.coerce.number().min(0, "أدخل مبلغاً صحيحاً").max(10_000_000, "المبلغ كبير جداً"),
+  items: z.array(checkoutItemSchema).min(1, "اختر منتجاً واحداً على الأقل"),
+});

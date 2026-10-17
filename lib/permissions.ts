@@ -18,6 +18,7 @@ export type Staff = {
   permissions: Permissions;
 };
 
+const NONE: Permissions = { products: false, orders: false, dashboard: false, home: false };
 const ALL: Permissions = { products: true, orders: true, dashboard: true, home: true };
 
 /**
@@ -36,15 +37,8 @@ export async function getStaff(): Promise<Staff | null> {
       role: user.role,
       agentNumber: user.agentNumber,
       commissionPerOrder: user.commissionPerOrder,
-      permissions:
-        user.role === "ADMIN"
-          ? ALL
-          : {
-              products: user.canManageProducts,
-              orders: user.canManageOrders,
-              dashboard: user.canViewDashboard,
-              home: user.canManageHome,
-            },
+      // Entry/follow-up/accounts staff only get their own pages, never the admin permissions.
+      permissions: user.role === "ADMIN" ? ALL : NONE,
     };
   } catch {
     return null;
@@ -53,6 +47,10 @@ export async function getStaff(): Promise<Staff | null> {
 
 /** First panel page this staff member may open (null if none). */
 export function landingPath(staff: Staff): string | null {
+  // Entry staff start from registering an order; follow-up staff from the follow-up list.
+  if (staff.role === "AGENT") return "/admin/new-order";
+  if (staff.role === "FOLLOWUP") return "/admin/follow-up";
+  if (staff.role === "ACCOUNTANT") return "/admin/statements";
   if (staff.permissions.dashboard) return "/admin/dashboard";
   if (staff.permissions.orders) return "/admin/orders";
   if (staff.permissions.products) return "/admin/products";
@@ -78,6 +76,38 @@ export async function requireAdminStaff(): Promise<Staff> {
   const staff = await getStaff();
   if (!staff) redirect("/admin/login");
   if (staff.role !== "ADMIN") redirect(landingPath(staff) ?? "/admin/no-access");
+  return staff;
+}
+
+/** Page guard for the financial pages: the admin and accounts staff. */
+export async function requireAccountsStaff(): Promise<Staff> {
+  const staff = await getStaff();
+  if (!staff) redirect("/admin/login");
+  if (staff.role !== "ADMIN" && staff.role !== "ACCOUNTANT") {
+    redirect(landingPath(staff) ?? "/admin/no-access");
+  }
+  return staff;
+}
+
+/** Server-action guard for financial actions (admin or accounts staff). */
+export async function accountsOnly(): Promise<Staff | null> {
+  const staff = await getStaff();
+  return staff && (staff.role === "ADMIN" || staff.role === "ACCOUNTANT") ? staff : null;
+}
+
+/** Page guard for agent-only pages (order registration, my orders). */
+export async function requireAgent(): Promise<Staff> {
+  const staff = await getStaff();
+  if (!staff) redirect("/admin/login");
+  if (staff.role !== "AGENT") redirect(landingPath(staff) ?? "/admin/no-access");
+  return staff;
+}
+
+/** Page guard for the follow-up employee's page. */
+export async function requireFollowUp(): Promise<Staff> {
+  const staff = await getStaff();
+  if (!staff) redirect("/admin/login");
+  if (staff.role !== "FOLLOWUP") redirect(landingPath(staff) ?? "/admin/no-access");
   return staff;
 }
 
