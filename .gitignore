@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# server deploy package (built by npm run pack)
+/deploy/*.tar.gz
